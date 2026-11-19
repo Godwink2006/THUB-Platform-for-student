@@ -15,9 +15,6 @@ html.announcement-delete-open body {
   overscroll-behavior: none;
 }
 
-html.announcement-delete-open .sidebar {
-  overflow: hidden !important;
-}
 
 body.dashboard-auth-checking {
   background: #fff;
@@ -132,73 +129,6 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   font-weight: 500;
 }
 
-.sidebar {
-  width: 260px;
-  height: 100vh;
-  overflow: auto;
-  position: fixed;
-  left: 0;
-  top: 0;
-
-  background: #1d4ed8;
-  color: #fff;
-  padding: 25px;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-
-  margin-bottom: 40px;
-}
-
-.logo img {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
-  background: #fff;
-}
-
-.logo h2 {
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.menu {
-  list-style: none;
-}
-
-.menu li {
-  margin-bottom: 10px;
-}
-
-.menu li a {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-
-  color: #fff;
-  text-decoration: none;
-
-  padding: 14px 16px;
-  transition: 0.3s;
-}
-
-.menu li a:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.menu li.active a {
-  background: #fff;
-  color: #1d4ed8;
-}
-
-.menu li a i {
-  width: 20px;
-  text-align: center;
-}
-
 .dashboard-main-content {
   margin-left: 260px;
   width: calc(100% - 260px);
@@ -221,46 +151,6 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
 .topbar p {
   color: #6b7280;
   margin-top: 5px;
-}
-
-.top-right {
-  display: flex;
-  align-items: center;
-  gap: 25px;
-}
-
-.dashboard-theme-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 8px 12px;
-  border: 0.5px solid #d1d5db;
-  background: #fff;
-  color: #374151;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.dashboard-theme-toggle i {
-  font-size: 15px;
-}
-
-.top-right i {
-  font-size: 22px;
-  color: #6b7280;
-  cursor: pointer;
-}
-
-.top-right img {
-  width: 45px;
-  height: 45px;
-  border-radius: 50%;
-
-  object-fit: cover;
-  cursor: pointer;
 }
 
 .dashboard-card {
@@ -876,20 +766,6 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
 }
 
 @media screen and (max-width: 768px) {
-  .dashboard-theme-toggle {
-    width: 40px;
-    justify-content: center;
-    padding: 8px;
-  }
-
-  .dashboard-theme-toggle span {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-  }
 
   .dashboard-cards {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -935,9 +811,6 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   .dashboard-error-retry,
   body.dashboard-auth-error-open .dashboard-auth-loading__content,
 .dashboard-auth-loading__retry,
-.dashboard-theme-toggle {
-    border-radius: 10px;
-  }
 
   .date-modal-content,
   .announcement-modal-content {
@@ -956,19 +829,8 @@ body.app-dark .dashboard-main-content {
   background: #111;
 }
 
-body.app-dark .sidebar {
-  background: #111 !important;
-  border-right: 1px solid #333;
-}
 
-body.app-dark .menu li.active a {
-  background: #222;
-  color: #fff;
-}
 
-body.app-dark .menu li a:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
 
 body.app-dark .topbar h1,
 body.app-dark .dashboard-card h2,
@@ -981,7 +843,6 @@ body.app-dark .announcement-confirm-copy h2 {
 
 body.app-dark .topbar p,
 body.app-dark #welcomeUserText,
-body.app-dark .top-right i,
 body.app-dark .dashboard-card h4,
 body.app-dark .dashboard-card p,
 body.app-dark .dashboard-card-header,
@@ -1006,8 +867,7 @@ body.app-dark .announcement-item,
 body.app-dark .filter-menu,
 body.app-dark .announcement-modal-content,
 body.app-dark .date-modal-content,
-body.app-dark .announcement-confirm-modal,
-body.app-dark .dashboard-theme-toggle {
+body.app-dark .announcement-confirm-modal {
   background: #111;
   border-color: #333;
   color: #fff;
@@ -1107,7 +967,6 @@ body.app-dark .filter-menu a:hover {
   background: #222;
 }
 
-body.app-dark .dashboard-theme-toggle:hover,
 body.app-dark .announcement-error-retry:hover,
 body.app-dark .dashboard-error-retry:hover,
 body.app-dark .announcement-delete-btn:hover:not(:disabled) {

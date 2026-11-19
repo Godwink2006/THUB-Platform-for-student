@@ -8,7 +8,7 @@ function applySavedAppTheme() {
   const isDark = savedTheme === "dark";
   document.body.classList.toggle("app-dark", isDark);
 
-  const toggle = document.getElementById("dashboardThemeToggle");
+  const toggle = document.getElementById("appThemeToggle");
   if (toggle) {
     toggle.classList.add("app-theme-toggle");
   }
@@ -368,26 +368,7 @@ async function checkPageAccess() {
 checkPageAccess();
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const menuToggle = document.getElementById("menuToggle");
-  const sidebar = document.querySelector(".sidebar");
-  const overlay = document.getElementById("sidebarOverlay");
-
-  function toggleMenu() {
-    sidebar.classList.toggle("active");
-    overlay.classList.toggle("active");
-  }
-
-  function closeMenu() {
-    sidebar.classList.remove("active");
-    overlay.classList.remove("active");
-  }
-
-  if (menuToggle) menuToggle.addEventListener("click", toggleMenu);
-  if (overlay) overlay.addEventListener("click", closeMenu);
-
-  document.querySelectorAll(".menu a").forEach((link) => {
-    link.addEventListener("click", closeMenu);
-  });
+  ensureStudentBottomNavigation();
 
   document.addEventListener(
     "error",
@@ -405,65 +386,128 @@ document.addEventListener("DOMContentLoaded", async () => {
     },
     true,
   );
-
-  if (!window.supabaseClient) return;
-
-  await loadHeaderSchoolLogo();
-
-  await window.getAuthContext();
 });
 
-async function loadHeaderSchoolLogo() {
-  const logoImg = document.getElementById("appHeaderLogo");
-  if (!logoImg || !window.supabaseClient) return;
+function ensureStudentBottomNavigation() {
+  if (isLoginPage() || document.querySelector(".student-bottom-nav")) return;
 
-  const DEFAULT_AVATAR =
-    "https://api.dicebear.com/7.x/initials/svg?seed=School";
+  document.body.classList.add("student-app-page");
 
-  try {
-    const authCtx = await window.getAuthContext();
-    if (!authCtx?.user) return;
+  const currentPage = window.location.pathname.split("/").pop().toLowerCase();
+  const activeSection = [
+    "my-attendance.html",
+    "my-fees.html",
+    "my-grades.html",
+    "my-history.html",
+    "my-timetable.html",
+  ].includes(currentPage)
+    ? "academics"
+    : ["my-profile.html", "school-information.html"].includes(currentPage)
+      ? "settings"
+      : currentPage.replace(".html", "");
 
-    let schoolNameEl = document.querySelector(".sidebar-school-name");
-    const logo = logoImg.closest(".logo");
-    if (logo) {
-      if (!schoolNameEl) {
-        schoolNameEl = document.createElement("p");
-        schoolNameEl.className = "sidebar-school-name";
-        schoolNameEl.setAttribute("aria-live", "polite");
-        logo.insertAdjacentElement("afterend", schoolNameEl);
-      }
-      schoolNameEl.textContent = "";
-      schoolNameEl.hidden = true;
-    }
+  const items = [
+    ["dashboard", "Dashboard", "/html/dashboard.html", "fa-house"],
+    ["academics", "Academics", "/html/academics.html", "fa-graduation-cap"],
+    ["books", "Books", "/html/books.html", "fa-book-open"],
+    ["notifications", "Notifications", "/html/notifications.html", "fa-bell"],
+    ["settings", "Settings", "/html/settings.html", "fa-gear"],
+  ];
 
-    if (!authCtx.profile?.school_id) {
-      logoImg.src = DEFAULT_AVATAR;
-      return;
-    }
+  const nav = document.createElement("nav");
+  nav.className = "student-bottom-nav";
+  nav.setAttribute("aria-label", "Main navigation");
+  nav.innerHTML = items
+    .map(([key, label, href, icon]) => `
+      <a class="student-bottom-nav__link${activeSection === key ? " is-active" : ""}"
+         href="${href}"${activeSection === key ? ' aria-current="page"' : ""}>
+        <i class="fa-solid ${icon}" aria-hidden="true"></i>
+        ${key === "notifications" ? '<span id="notificationBadge" class="student-bottom-nav__badge" hidden></span>' : ""}
+        <span>${label}</span>
+      </a>
+    `)
+    .join("");
 
-    const { data, error } = await window.supabaseClient
-      .from("schools")
-      .select("school_name, logo_url")
-      .eq("id", authCtx.profile.school_id)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Could not load the signed-in user's school:", error);
-      logoImg.src = DEFAULT_AVATAR;
-      return;
-    }
-
-    logoImg.src = data?.logo_url ? data.logo_url : DEFAULT_AVATAR;
-    if (schoolNameEl) {
-      schoolNameEl.textContent = data?.school_name || "";
-      schoolNameEl.hidden = !data?.school_name;
-    }
-  } catch (err) {
-    console.error("Unexpected error loading header logo:", err);
-    logoImg.src = DEFAULT_AVATAR;
-  }
+  document.body.append(nav);
 }
+
+ensureStudentBottomNavigation();
+initStudentNotificationBadge();
+
+let studentNotificationBadgeChannel = null;
+let notificationBadgeRefreshTimer = null;
+
+async function initStudentNotificationBadge() {
+  const authContext = await window.getAuthContext();
+  const user = authContext?.user;
+  if (!user || !window.supabaseClient) return;
+  if (String(authContext.profile?.role || "").trim().toLowerCase() !== "student") return;
+
+  await refreshStudentNotificationBadge(user.id);
+  if (studentNotificationBadgeChannel) return;
+
+  studentNotificationBadgeChannel = window.supabaseClient
+    .channel(`student-notification-badge:${user.id}`)
+    .on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      },
+      scheduleStudentNotificationBadgeRefresh,
+    )
+    .on(
+      "postgres_changes",
+      {
+        event: "UPDATE",
+        schema: "public",
+        table: "notifications",
+        filter: `user_id=eq.${user.id}`,
+      },
+      scheduleStudentNotificationBadgeRefresh,
+    )
+    .subscribe((status) => {
+      if (status === "SUBSCRIBED") {
+        scheduleStudentNotificationBadgeRefresh();
+      }
+    });
+}
+
+function scheduleStudentNotificationBadgeRefresh() {
+  clearTimeout(notificationBadgeRefreshTimer);
+  notificationBadgeRefreshTimer = setTimeout(() => {
+    void refreshStudentNotificationBadge();
+  }, 150);
+}
+
+async function refreshStudentNotificationBadge(userId = null) {
+  const badge = document.getElementById("notificationBadge");
+  const client = window.supabaseClient;
+  if (!badge || !client) return;
+
+  if (!userId) {
+    userId = (await window.getAuthContext())?.user?.id;
+  }
+  if (!userId) return;
+
+  const { count, error } = await client
+    .from("notifications")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("is_read", false);
+
+  if (error) {
+    console.warn("Could not load unread notification count:", error);
+    return;
+  }
+
+  badge.textContent = count > 99 ? "99+" : String(count || 0);
+  badge.hidden = !count;
+}
+
+window.refreshStudentNotificationBadge = refreshStudentNotificationBadge;
 
 window.addEventListener("pageshow", async (event) => {
   if (
@@ -496,6 +540,14 @@ window.addEventListener("pageshow", async (event) => {
     if (!isLoginPage() && !user) {
       await window.forceLogout();
       return;
+    }
+
+    if (
+      !isLoginPage() &&
+      String(profile?.role || "").trim().toLowerCase() === "student" &&
+      String(profile?.status || "").trim().toLowerCase() === "active"
+    ) {
+      void refreshStudentNotificationBadge(user?.id);
     }
 
     if (
@@ -920,19 +972,3 @@ window.sendNotification = async function (
     return { success: false, error: err };
   }
 };
-
-// Load the client-side router before page-specific scripts when the document
-// is still being parsed. That lets it manage each page's existing listeners.
-(function loadSPARouter() {
-  if (window.SPARouter || window.__spaRouterLoading) return;
-  window.__spaRouterLoading = true;
-
-  if (document.readyState === "loading" && document.currentScript) {
-    document.write('<script src="/js/spa-router.js"><\/script>');
-    return;
-  }
-
-  const routerScript = document.createElement("script");
-  routerScript.src = "/js/spa-router.js";
-  document.head.appendChild(routerScript);
-})();

@@ -263,73 +263,6 @@ body {
   display: flex;
 }
 
-.sidebar {
-  width: 260px;
-  height: 100vh;
-  overflow: auto;
-  position: fixed;
-  left: 0;
-  top: 0;
-
-  background: #1d4ed8;
-  color: #fff;
-  padding: 25px;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-
-  margin-bottom: 40px;
-}
-
-.logo img {
-  width: 55px;
-  height: 55px;
-  border-radius: 50%;
-  background: #fff;
-}
-
-.logo h2 {
-  font-size: 24px;
-  font-weight: 600;
-}
-
-.menu {
-  list-style: none;
-}
-
-.menu li {
-  margin-bottom: 10px;
-}
-
-.menu li a {
-  display: flex;
-  align-items: center;
-  gap: 15px;
-
-  color: #fff;
-  text-decoration: none;
-
-  padding: 14px 16px;
-  transition: 0.3s;
-}
-
-.menu li a:hover {
-  background: rgba(255, 255, 255, 0.15);
-}
-
-.menu li.active a {
-  background: #fff;
-  color: #1d4ed8;
-}
-
-.menu li a i {
-  width: 20px;
-  text-align: center;
-}
-
 .students-main-content {
   margin-left: 260px;
   width: calc(100% - 260px);
@@ -491,7 +424,4 @@ body {
 }
 
 @media screen and (max-width: 768px) {
-  .menu-toggle {
-    z-index: 100;
-  }
 }

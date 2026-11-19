@@ -104,6 +104,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       notificationsData = notificationsData.filter((item) => item.id !== id);
       renderNotifications();
+      void window.refreshStudentNotificationBadge?.();
       if (typeof showToast === "function") {
         showToast("Notification deleted.", "success");
       }
@@ -129,6 +130,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         n.id === id ? { ...n, is_read: true } : n,
       );
       renderNotifications();
+      void window.refreshStudentNotificationBadge?.();
     } catch (err) {
       console.error("Error updating notification:", err);
     }
@@ -153,6 +155,7 @@ document.addEventListener("DOMContentLoaded", async () => {
         is_read: true,
       }));
       renderNotifications();
+      void window.refreshStudentNotificationBadge?.();
     } catch (err) {
       console.error("Error marking all as read:", err);
     }

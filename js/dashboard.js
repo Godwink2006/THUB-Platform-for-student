@@ -31,10 +31,7 @@ async function loadStudentDashboard() {
     const welcome = document.getElementById("welcomeUserText");
     if (welcome) welcome.textContent = `Welcome back, ${profile.full_name || "Student"}`;
 
-    await Promise.all([
-      loadStudentAnnouncements(client, profile.school_id, preview),
-      updateStudentNotificationBadge(client, user.id),
-    ]);
+    await loadStudentAnnouncements(client, profile.school_id, preview);
   } catch (error) {
     console.error("Could not load the student dashboard:", error);
     if (preview) {
@@ -85,24 +82,6 @@ async function loadStudentAnnouncements(client, schoolId, container) {
       <small>${expiry}</small>
     </article>`;
   }).join("");
-}
-
-async function updateStudentNotificationBadge(client, userId) {
-  const badge = document.getElementById("notificationBadge");
-  if (!badge) return;
-
-  const { count, error } = await client
-    .from("notifications")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .eq("is_read", false);
-  if (error) {
-    console.warn("Could not load unread notification count:", error);
-    return;
-  }
-
-  badge.textContent = count > 99 ? "99+" : String(count || 0);
-  badge.hidden = !count;
 }
 
 function escapeStudentHtml(value) {

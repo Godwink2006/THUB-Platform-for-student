@@ -1,13 +1,104 @@
-.menu-toggle {
-  display: none;
-}
-
-.sidebar-overlay {
-  display: none;
-}
-
 body {
   background: #f6f5f5;
+}
+
+body.student-app-page {
+  padding-bottom: calc(84px + env(safe-area-inset-bottom));
+}
+
+.dashboard-main-content,
+.academics-main-content,
+.students-main-content,
+.settings-main-content {
+  width: 100% !important;
+  margin-left: 0 !important;
+  padding-bottom: 24px;
+}
+
+.student-bottom-nav {
+  position: fixed;
+  z-index: 1000;
+  left: 50%;
+  bottom: 0;
+  width: min(100%, 720px);
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  transform: translateX(-50%);
+  padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(148, 163, 184, 0.22);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.1);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+}
+
+.student-bottom-nav__link {
+  position: relative;
+  display: flex;
+  min-width: 0;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+  border-radius: 14px;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  transition: color 160ms ease, background 160ms ease, transform 160ms ease;
+}
+
+.student-bottom-nav__link i {
+  font-size: 1.15rem;
+}
+
+.student-bottom-nav__badge:not([hidden]) {
+  position: absolute;
+  top: 3px;
+  left: calc(50% + 5px);
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 12px;
+  text-align: center;
+}
+
+body.app-dark .student-bottom-nav__badge:not([hidden]) {
+  border-color: #0f0f0f;
+  color: #fff;
+}
+
+.student-bottom-nav__link:hover,
+.student-bottom-nav__link.is-active {
+  color: #2563eb;
+  background: #eff6ff;
+}
+
+.student-bottom-nav__link:active {
+  transform: scale(0.96);
+}
+
+body.app-dark .student-bottom-nav {
+  border-color: #2b2b2b;
+  background: rgba(15, 15, 15, 0.94);
+}
+
+body.app-dark .student-bottom-nav__link {
+  color: #a1a1aa;
+}
+
+body.app-dark .student-bottom-nav__link:hover,
+body.app-dark .student-bottom-nav__link.is-active {
+  color: #93c5fd;
+  background: #1e293b;
 }
 
 tbody tr:hover {
@@ -27,55 +118,10 @@ tbody tr:hover {
   margin-bottom: 10px;
 }
 
-.sidebar-school-name {
-  color: #ffffff;
-  background: rgba(255, 255, 255, 0.09);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
-  font-size: 15px;
-  font-weight: 750;
-  line-height: 1.4;
-  margin: 12px 14px 20px;
-  padding: 11px 12px;
-  overflow-wrap: anywhere;
-  text-align: left;
-}
-
-.sidebar-school-name[hidden] {
-  display: none !important;
-}
-
-/* Keep the shared school mark sized while route-specific stylesheets switch. */
-.sidebar .logo img {
-  width: 55px;
-  height: 55px;
-  flex: 0 0 55px;
-  border-radius: 50%;
-  background: #fff;
-  object-fit: cover;
-}
-
 @media screen and (max-width: 768px) {
 .toast{
   border-radius: 10px;
 }
-
-  .menu-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    top: 15px;
-    left: 15px;
-    position: fixed;
-    background: #1d4ed8;
-    color: #ffffff;
-    border: none;
-    padding: 10px 14px;
-    border-radius: 6px;
-    font-size: 20px;
-    cursor: pointer;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-    transition: left 0.3s ease;
-  }
 
   input[type="date"],
   input[type="datetime-local"],
@@ -109,67 +155,15 @@ tbody tr:hover {
     grid-column: span 2;
   }
 
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: -280px;
-    width: 260px;
-    height: 100vh;
-    z-index: 1000;
-    transition: left 0.3s ease-in-out;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
-  }
-
-  .sidebar.active {
-    left: 0;
-  }
-
-  html.spa-navigating .sidebar {
-    left: -280px !important;
-    visibility: hidden !important;
-    transition: none !important;
-  }
-
-  .sidebar-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-    opacity: 0;
-    visibility: hidden;
-    transition: opacity 0.3s ease;
-  }
-
-  .sidebar-overlay.active {
-    display: block;
-    opacity: 1;
-    visibility: visible;
-  }
-
-  html.spa-navigating .sidebar-overlay {
-    display: none !important;
-  }
-
   .settings-main-content,
   .academics-main-content,
   .dashboard-main-content,
-  .finances-main-content,
-  .books-main-content,
-  .reports-main-content,
-  .students-main-content,
-  .teachers-main-content {
+  .students-main-content {
     margin-left: 0 !important;
     width: 100% !important;
-    padding-top: 70px;
+    padding-top: 16px;
   }
 
-  .menu li a,
-  .sidebar-school-name {
-    border-radius: 10px;
-  }
 }
 
 .toast-container {

@@ -24,6 +24,14 @@ async function initSettingsPage() {
         </div>
 
         <div class="setting-card">
+          <h4>Appearance</h4>
+          <p>Choose light or dark mode for the app.</p>
+          <button type="button" class="manage-btn app-theme-toggle" id="appThemeToggle" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+            <i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>
+          </button>
+        </div>
+
+        <div class="setting-card">
           <h4>School Information</h4>
           <p>View your school information.</p>
           <button onclick="window.location.href = 'school-information.html'" class="manage-btn">
@@ -49,9 +57,11 @@ async function initSettingsPage() {
       `;
 
       containerEl.innerHTML = allCardsHTML;
+      window.applySavedAppTheme?.();
 
       const settingIcons = new Map([
         ["My Profile", "fa-user"],
+        ["Appearance", "fa-palette"],
         ["School Information", "fa-school"],
         ["Push Notifications", "fa-bell"],
         ["Log Out & Clear Browser Data", "fa-right-from-bracket"],
