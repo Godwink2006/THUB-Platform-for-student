@@ -111,15 +111,6 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   display: flex;
 }
 
-#openAnnouncementModal,
-#class-dashboard-card,
-#student-dashboard-card,
-#teacher-dashboard-card,
-#enrollment-dashboard-card,
-#attendance-dashboard-card {
-  display: none;
-}
-
 .empty-state {
   display: flex;
   flex-direction: column;

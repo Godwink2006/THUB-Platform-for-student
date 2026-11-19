@@ -33,8 +33,7 @@
 
   function pageFamily(doc) {
     if (!doc.querySelector("main")) return null;
-    if (doc.querySelector("aside.sidebar")) return "staff";
-    if (doc.querySelector(".parent-topbar")) return "parent";
+    if (doc.querySelector("aside.sidebar")) return "student";
     return null;
   }
 

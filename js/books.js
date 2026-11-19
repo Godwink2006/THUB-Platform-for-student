@@ -359,7 +359,7 @@ async function openStudentBookHistoryModal(bookId) {
 
     const { data: profile, error: profileError } = await window.supabaseClient
       .from("profiles")
-      .select("id, full_name, email, photo_url, role, students(student_id), teachers(staff_id)")
+      .select("id, full_name, email, photo_url, students(student_id)")
       .eq("id", user.id)
       .single();
     if (profileError) throw profileError;
@@ -395,7 +395,7 @@ async function openStudentBookHistoryModal(bookId) {
         <img class="app-person-avatar" src="${escapeHtml(photoUrl)}" alt="" aria-hidden="true" onerror="this.onerror=null;this.src='${escapeHtml(window.DEFAULT_PROFILE_AVATAR || "")}'" />
         <span class="app-person-meta">
           <strong>${escapeHtml(borrowerName)}</strong>
-          <small>${escapeHtml(profile.role || "User")}</small>
+          <small>Student</small>
           ${borrowerIdentity ? `<small>${escapeHtml(borrowerIdentity.label)}: ${escapeHtml(borrowerIdentity.value)}</small>` : ""}
         </span>
       </section>
@@ -438,16 +438,8 @@ async function openStudentBookHistoryModal(bookId) {
 }
 
 function getBorrowerIdentity(profile, student = null) {
-  const role = String(profile?.role || "").toLowerCase();
-  const teacher = Array.isArray(profile?.teachers)
-    ? profile.teachers[0]
-    : profile?.teachers;
-
-  if (role === "student" && student?.student_id) {
+  if (student?.student_id) {
     return { label: "Student ID", value: student.student_id };
-  }
-  if (role === "teacher" && teacher?.staff_id) {
-    return { label: "Staff ID", value: teacher.staff_id };
   }
   return null;
 }

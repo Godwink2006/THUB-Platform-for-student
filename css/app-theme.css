@@ -65,8 +65,7 @@ body.app-dark :is(
     .table-card,
     .table-container,
     .selected-student-panel,
-    .children-section,
-    .parent-record-panel
+    .children-section
   ) {
   background-color: #111;
   border-color: #333;

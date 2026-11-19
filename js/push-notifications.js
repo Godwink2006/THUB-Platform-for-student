@@ -34,8 +34,8 @@ window.initPushNotificationSetup = async function ({
       ? `Disable on This Device <i class="fa-solid fa-bell-slash" aria-hidden="true"></i>`
       : `Enable on This Device <i class="fa-solid fa-bell" aria-hidden="true"></i>`;
     status.textContent = isEnabled
-      ? "This device is registered. Push alerts will arrive for updates sent to your parent account."
-      : "Push alerts are off on this device. Enable them to hear about updates for your linked students.";
+      ? "This device is registered. Push alerts will arrive for your student updates."
+      : "Push alerts are off on this device. Enable them to hear about your student updates.";
   };
 
   try {

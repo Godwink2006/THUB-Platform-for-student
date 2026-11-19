@@ -90,103 +90,6 @@ window.formatSchoolMoney = function (amount, currencyCode) {
   return `${currencyLabel} ${formattedAmount}`;
 };
 
-function renderNavigation(userRole) {
-  const isAdmin = userRole === "admin";
-  const isAccountant = userRole === "accountant";
-  const isTeacher = userRole === "teacher";
-  const isStudent = userRole === "student";
-  const isLibrarian = userRole === "librarian";
-
-  if (isAdmin || isStudent || isTeacher || isAccountant) {
-    document.querySelectorAll(".exclude-librarian").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isAdmin || isLibrarian) {
-    document.querySelectorAll(".admin-librarian-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isAdmin) {
-    document.querySelectorAll(".admin-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isAdmin || isAccountant) {
-    document.querySelectorAll(".admin-accountant-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isAdmin || isTeacher) {
-    document.querySelectorAll(".admin-teacher-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isTeacher) {
-    document.querySelectorAll(".teacher-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isStudent) {
-    document.querySelectorAll(".student-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-
-  if (isTeacher || isStudent) {
-    document.querySelectorAll(".teacher-student-only").forEach((el) => {
-      el.style.setProperty("display", "list-item", "important");
-    });
-  }
-}
-
-const ADMIN_ONLY_PAGES = [
-  "subjects.html",
-  "department.html",
-  "academic-year.html",
-  "structures.html",
-  "classes.html",
-  "audit-logs.html",
-  "periods.html",
-  "assessments.html",
-  "semester.html",
-  "system-users.html",
-  "teacher-assignment.html",
-  "teachers.html",
-  "timetable.html",
-];
-
-const ADMIN_ACCOUNTANT_PAGES = [
-  "students.html",
-  "parent-invitations.html",
-  "finance.html",
-  "enrollment.html",
-];
-
-const PARENT_ONLY_PAGES = ["parent-dashboard.html", "parent-records.html"];
-
-const ADMIN_TEACHER_PAGES = [
-  "attendance.html",
-  "grades.html",
-  "student-report-cards.html",
-];
-
-const TEACHER_ONLY_PAGES = ["my-assignments.html"];
-
-const STUDENT_ONLY_PAGES = ["my-attendance.html"];
-
-const TEACHER_STUDENT_ONLY_PAGES = ["my-timetable.html"];
-
-const TEACHER_LIBRARIAN_ONLY_PAGES = ["library.html"];
-
-const EXCLUDE_LIBRARIAN_PAGE = ["academics.html"];
-
 window.DEFAULT_PROFILE_AVATAR =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128' width='128' height='128'><circle cx='64' cy='64' r='64' fill='%23E4E6EB'/><circle cx='64' cy='46' r='22' fill='%23B0B3B8'/><path d='M24 112c0-22 18-40 40-40s40 18 40 40' fill='%23B0B3B8'/></svg>";
 
@@ -432,34 +335,7 @@ window.forceLogout = async function () {
   }
 };
 async function checkPageAccess() {
-  const currentPage = window.location.pathname.split("/").pop();
-
-  const isAdminOnly = ADMIN_ONLY_PAGES.includes(currentPage);
-  const isAdminOrAccountantOnly = ADMIN_ACCOUNTANT_PAGES.includes(currentPage);
-  const isAdminOrTeacherOnly = ADMIN_TEACHER_PAGES.includes(currentPage);
-  const isTeacherOnly = TEACHER_ONLY_PAGES.includes(currentPage);
-  const isStudentOnly = STUDENT_ONLY_PAGES.includes(currentPage);
-  const isTeacherOrStudentOnly =
-    TEACHER_STUDENT_ONLY_PAGES.includes(currentPage);
-  const isAdminOrLibrarianOnly =
-    TEACHER_LIBRARIAN_ONLY_PAGES.includes(currentPage);
-  const isExcludeLibrarian = EXCLUDE_LIBRARIAN_PAGE.includes(currentPage);
-  const isParentOnly = PARENT_ONLY_PAGES.includes(currentPage);
-
-  const isProtectedPage =
-    isAdminOnly ||
-    isAdminOrAccountantOnly ||
-    isAdminOrTeacherOnly ||
-    isTeacherOnly ||
-    isStudentOnly ||
-    isAdminOrLibrarianOnly ||
-    isExcludeLibrarian ||
-    isParentOnly ||
-    isTeacherOrStudentOnly;
-
-  if (!isProtectedPage) {
-    return;
-  }
+  if (isLoginPage()) return;
 
   document.documentElement.style.visibility = "hidden";
 
@@ -478,59 +354,9 @@ async function checkPageAccess() {
   }
 
   const accountStatus = String(profile?.status || "").trim().toLowerCase();
-  if (accountStatus !== "active") {
-    await window.forceLogout();
-    return;
-  }
-
-  const role = profile?.role;
-
-  if (isParentOnly && role !== "parent") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isAdminOnly && role !== "admin") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isAdminOrAccountantOnly && role !== "admin" && role !== "accountant") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isAdminOrLibrarianOnly && role !== "admin" && role !== "librarian") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isAdminOrTeacherOnly && role !== "admin" && role !== "teacher") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isTeacherOnly && role !== "teacher") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isStudentOnly && role !== "student") {
-    await window.forceLogout();
-    return;
-  }
-
-  if (isTeacherOrStudentOnly && role !== "teacher" && role !== "student") {
-    await window.forceLogout();
-    return;
-  }
-
   if (
-    isExcludeLibrarian &&
-    role !== "teacher" &&
-    role !== "student" &&
-    role !== "admin" &&
-    role !== "accountant"
+    accountStatus !== "active" ||
+    String(profile?.role || "").trim().toLowerCase() !== "student"
   ) {
     await window.forceLogout();
     return;
@@ -580,44 +406,11 @@ document.addEventListener("DOMContentLoaded", async () => {
     true,
   );
 
-  const modalIds = [
-    "periodModal",
-    "editPeriodModal",
-    "editSystemUserModal",
-    "systemUserModal",
-    "editSubjectModal",
-    "subjectModal",
-    "structureModal",
-    "editStructureModal",
-    "viewStructureModal",
-    "termModal",
-    "editTermModal",
-    "editDepartmentModal",
-    "departmentModal",
-    "classModal",
-    "editClassModal",
-    "academicYearModal",
-    "editAcademicYearModal",
-  ];
-
-  document.addEventListener("click", (event) => {
-    modalIds.forEach((id) => {
-      const modal = document.getElementById(id);
-      if (modal && event.target === modal) {
-        modal.classList.remove("active");
-        unLockBodyScroll();
-      }
-    });
-  });
-
   if (!window.supabaseClient) return;
 
   await loadHeaderSchoolLogo();
 
-  const authCtx = await window.getAuthContext();
-  if (typeof renderNavigation === "function") {
-    renderNavigation(authCtx?.profile?.role || null);
-  }
+  await window.getAuthContext();
 });
 
 async function loadHeaderSchoolLogo() {
@@ -690,11 +483,11 @@ window.addEventListener("pageshow", async (event) => {
 
     if (isLoginPage()) {
       if (user) {
-        const destination =
-          String(profile?.role || "").toLowerCase() === "parent"
-            ? "/html/parent-dashboard.html"
-            : "/html/dashboard.html";
-        window.location.replace(destination);
+        if (String(profile?.role || "").trim().toLowerCase() === "student") {
+          window.location.replace("/html/dashboard.html");
+        } else {
+          await window.forceLogout();
+        }
         return;
       }
       document.body.classList.remove("login-auth-checking");
@@ -705,8 +498,10 @@ window.addEventListener("pageshow", async (event) => {
       return;
     }
 
-    const currentPage = window.location.pathname.split("/").pop();
-    if (ADMIN_ONLY_PAGES.includes(currentPage) && profile?.role !== "admin") {
+    if (
+      String(profile?.role || "").trim().toLowerCase() !== "student" ||
+      String(profile?.status || "").trim().toLowerCase() !== "active"
+    ) {
       await window.forceLogout();
     }
   }
@@ -740,6 +535,15 @@ window.addEventListener("pageshow", async (event) => {
     localStorage.clear();
     sessionStorage.clear();
     window.location.replace("/index.html");
+    return;
+  }
+
+  if (
+    !isLogin &&
+    (String(authCtx?.profile?.role || "").trim().toLowerCase() !== "student" ||
+      String(authCtx?.profile?.status || "").trim().toLowerCase() !== "active")
+  ) {
+    await window.forceLogout();
     return;
   }
 

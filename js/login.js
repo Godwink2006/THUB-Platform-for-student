@@ -39,11 +39,14 @@ async function redirectIfAlreadySignedIn() {
       return;
     }
 
-    const destination =
-      String(profile.role || "").toLowerCase() === "parent"
-        ? "/html/parent-dashboard.html"
-        : "/html/dashboard.html";
-    window.location.replace(destination);
+    if (String(profile.role || "").trim().toLowerCase() !== "student") {
+      await client.auth.signOut();
+      window.clearAuthWelcome?.();
+      document.body.classList.remove("login-auth-checking");
+      return;
+    }
+
+    window.location.replace("/html/dashboard.html");
     return;
   } catch (error) {
     console.warn("Could not restore the signed-in user's role:", error);
@@ -100,8 +103,13 @@ form.addEventListener("submit", async (e) => {
     if (!profile) {
       await window.supabaseClient.auth.signOut();
       throw new Error(
-        "We couldn't load your profile. Your school's subscription may not include access for this role; Premium access is required for student and librarian accounts. Contact your school administrator to check the plan.",
+        "We couldn't load your student profile. Contact your school administrator to check your account.",
       );
+    }
+
+    if (String(profile.role || "").trim().toLowerCase() !== "student") {
+      await window.supabaseClient.auth.signOut();
+      throw new Error("This app is for student accounts. Sign in with a student account.");
     }
 
     if (profile.status !== "active") {
@@ -115,13 +123,8 @@ form.addEventListener("submit", async (e) => {
     document.body.classList.add("login-auth-checking");
     showToast("Login successful!", "success");
 
-    const destination =
-      profile.role === "parent"
-        ? "/html/parent-dashboard.html"
-        : "/html/dashboard.html";
-
     setTimeout(() => {
-      window.location.replace(destination);
+      window.location.replace("/html/dashboard.html");
     }, 800);
   } catch (err) {
     showToast(err.message, "error");

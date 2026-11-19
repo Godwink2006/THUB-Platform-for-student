@@ -31,7 +31,6 @@ async function initMyTimetable() {
     }
 
     const role = profile.role?.toLowerCase();
-    currentUserRole = role || "student";
     const schoolId = profile.school_id;
 
     if (role === "student") {
@@ -73,19 +72,8 @@ async function initMyTimetable() {
       );
 
       await setupTimetableFilters(studentData.school_id || schoolId);
-    } else if (role === "teacher") {
-      const { data: teacherData } = await supabaseClient
-        .from("teachers")
-        .select("id")
-        .eq("id", user.id)
-        .maybeSingle();
-
-      const teacherId = teacherData?.id || user.id;
-      await loadTeacherPersonalSchedule(teacherId);
-
-      await setupTimetableFilters(schoolId);
     } else {
-      renderEmptyState("Timetable access is not available for your role.");
+      renderEmptyState("Your account is not set up as a student.");
     }
   } catch (err) {
     console.error("Timetable Load Error:", err);
@@ -260,50 +248,7 @@ async function loadStudentClassSchedule(classId, schoolId) {
   allCurrentLessons = formattedLessons;
 }
 
-async function loadTeacherPersonalSchedule(teacherId) {
-  document.getElementById("classMetaBanner")?.classList.add("hidden");
-  document.getElementById("timetableSubtitle").textContent =
-    "Your personal weekly teaching schedule";
-
-  const { data: lessons, error } = await supabaseClient
-    .from("timetable_lessons")
-    .select(
-      `
-      id,
-      day_of_week,
-      is_break,
-      subject:subjects (name),
-      period:periods (name, start_time, end_time),
-      timetable:timetables (class:classes(name))
-    `,
-    )
-    .eq("teacher_id", teacherId);
-
-  if (error || !lessons || lessons.length === 0) {
-    renderEmptyState("You have no assigned teaching periods.");
-    return;
-  }
-
-  const formattedLessons = lessons.map((lesson) => {
-    const isBreak = Boolean(
-      lesson.is_break || (!lesson.subject && !lesson.subject?.name),
-    );
-
-    return {
-      ...lesson,
-      is_break: isBreak,
-      subject: lesson.subject
-        ? { name: lesson.subject.name }
-        : { name: lesson.period?.name || "BREAK" },
-      class: { name: lesson.timetable?.class?.name || "" },
-      period: lesson.period || { start_time: null, end_time: null },
-    };
-  });
-
-  allCurrentLessons = formattedLessons;
-}
-
-function renderScheduleCards(lessons, roleContext) {
+function renderScheduleCards(lessons) {
   const container = document.getElementById("timetableCardsGrid");
   if (!container) return;
 
@@ -348,7 +293,7 @@ function renderScheduleCards(lessons, roleContext) {
   <span style="font-size: 1.1rem; font-weight: 600; color: #334155;">No classes scheduled</span>
 </div>`
                 : dayLessons
-                    .map((item) => renderLessonCardItem(item, roleContext))
+                    .map(renderLessonCardItem)
                     .join("")
             }
           </div>
@@ -358,7 +303,7 @@ function renderScheduleCards(lessons, roleContext) {
     .join("");
 }
 
-function renderLessonCardItem(item, roleContext) {
+function renderLessonCardItem(item) {
   const timeStr =
     item.period?.start_time && item.period?.end_time
       ? `${item.period.start_time.slice(0, 5)} - ${item.period.end_time.slice(0, 5)}`
@@ -376,14 +321,8 @@ function renderLessonCardItem(item, roleContext) {
 
   let secondaryLabel = "";
   if (!isBreak) {
-    if (roleContext === "student") {
-      const teacherName = item.teacher?.full_name || "—";
-      secondaryLabel = `<div class="lesson-teacher"><i class="fa-solid fa-user-tie"></i> ${escapeHTML(teacherName)}</div>`;
-    } else if (roleContext === "teacher") {
-      const className =
-        item.timetable?.class?.name || item.class?.name || "Class —";
-      secondaryLabel = `<div class="lesson-teacher"><i class="fa-solid fa-graduation-cap"></i> ${escapeHTML(className)}</div>`;
-    }
+    const teacherName = item.teacher?.full_name || "—";
+    secondaryLabel = `<div class="lesson-teacher"><i class="fa-solid fa-user-tie"></i> ${escapeHTML(teacherName)}</div>`;
   }
 
   return `
@@ -444,7 +383,7 @@ function applyTimetableFilters() {
   const selectedDay = document.getElementById("filterTimetableDays")?.value;
 
   let filtered = allCurrentLessons.filter(
-    (lesson) => currentUserRole !== "student" || !lesson.is_break,
+    (lesson) => !lesson.is_break,
   );
 
   if (selectedDay) {
@@ -455,5 +394,5 @@ function applyTimetableFilters() {
     );
   }
 
-  renderScheduleCards(filtered, currentUserRole);
+  renderScheduleCards(filtered);
 }

@@ -65,89 +65,23 @@ Deno.serve(async (request) => {
     return json({ skipped: true, reason: "Notification has no recipient or title" });
   }
 
-  // Notifications addressed to a student also reach their active linked parents.
-  // Parent pushes are generic and open the parent dashboard; no parent inbox row
-  // is needed. The database lookup runs here with the service-role client so the
-  // browser never needs permission to enumerate parent links.
-  const { data: parentLinks, error: parentLinksError } = await adminClient
-    .from("parent_student_links")
-    .select("parent_user_id")
-    .eq("student_id", notification.user_id)
-    .eq("status", "active");
-  if (parentLinksError) {
-    console.error("Could not load linked parents:", parentLinksError.message);
-    return json({ error: "Could not load linked parents" }, 500);
-  }
-
-  const parentUserIds = [...new Set((parentLinks || []).map((link) => link.parent_user_id))];
-  const parentUserIdSet = new Set(parentUserIds);
-  const recipientIds = [...new Set([notification.user_id, ...parentUserIds])];
-
-  let studentName = "your student";
-  if (parentUserIds.length) {
-    const { data: student, error: studentError } = await adminClient
-      .from("students")
-      .select("profiles(full_name)")
-      .eq("id", notification.user_id)
-      .maybeSingle();
-    if (studentError) {
-      console.warn("Could not load student name for parent push:", studentError.message);
-    } else {
-      const profile = Array.isArray(student?.profiles)
-        ? student.profiles[0]
-        : student?.profiles;
-      const fullName = typeof profile?.full_name === "string"
-        ? profile.full_name.trim()
-        : "";
-      if (fullName) studentName = fullName;
-    }
-  }
-
   const { data: subscriptions, error } = await adminClient
     .from("push_subscriptions")
     .select("id, user_id, endpoint, p256dh, auth_key")
-    .in("user_id", recipientIds);
+    .eq("user_id", notification.user_id);
   if (error) {
     console.error("Could not load push subscriptions:", error.message);
     return json({ error: "Could not load push subscriptions" }, 500);
   }
   if (!subscriptions?.length) return json({ sent: 0, expired: 0 });
 
-  const notificationCategory = notification.type === "academic"
-    ? "grade"
-    : notification.type === "attendance"
-      ? "attendance"
-      : ["fee", "fees", "finance", "financial"].includes(
-          String(notification.type || "").toLowerCase(),
-        )
-        ? "fees"
-        : "student";
-  const parentTitle = notificationCategory === "grade"
-    ? "Grade Update"
-    : notificationCategory === "attendance"
-      ? "Attendance Update"
-      : notificationCategory === "fees"
-        ? "Fees Update"
-        : "Student Update";
-  const parentPayload = {
-    title: parentTitle,
-    body: notificationCategory === "student"
-      ? `There is a new update for ${studentName}. Sign in to T-HUB to view it.`
-      : `There is a new ${notificationCategory} update for ${studentName}. Sign in to T-HUB to view it.`,
-    url: "/html/parent-dashboard.html",
-  };
   const studentPayload = {
     title: notification.title,
     body: notification.message || "You have a new notification.",
     url: "/html/notifications.html",
   };
 
-  return await deliverPushes(
-    subscriptions || [],
-    (subscription) => parentUserIdSet.has(subscription.user_id)
-      ? parentPayload
-      : studentPayload,
-  );
+  return await deliverPushes(subscriptions || [], () => studentPayload);
 });
 
 async function sendAnnouncementPush(announcement: PushWebhook["record"]) {
@@ -169,19 +103,7 @@ async function sendAnnouncementPush(announcement: PushWebhook["record"]) {
   );
   const everyone = audiences.has("all") || audiences.has("everyone");
   const audienceRoles = new Set<string>();
-  if (everyone) {
-    ["admin", "teacher", "receptionist", "accountant", "librarian", "student"]
-      .forEach((role) => audienceRoles.add(role));
-  } else {
-    ["teacher", "receptionist", "accountant", "librarian", "student"]
-      .forEach((role) => {
-        if (audiences.has(role)) audienceRoles.add(role);
-      });
-  }
-
-  // Parents can see announcements aimed at parents or students in the portal.
-  const shouldNotifyParents =
-    everyone || audiences.has("parent") || audiences.has("student");
+  if (everyone || audiences.has("student")) audienceRoles.add("student");
   const recipientIds = new Set<string>();
   if (audienceRoles.size) {
     const { data: profiles, error } = await adminClient
@@ -199,40 +121,6 @@ async function sendAnnouncementPush(announcement: PushWebhook["record"]) {
         recipientIds.add(profile.id);
       }
     });
-  }
-
-  const parentUserIds = new Set<string>();
-  if (shouldNotifyParents) {
-    const { data: links, error } = await adminClient
-      .from("parent_student_links")
-      .select("parent_user_id")
-      .eq("school_id", announcement.school_id)
-      .eq("status", "active");
-    if (error) {
-      console.error("Could not load announcement parent links:", error.message);
-      return json({ error: "Could not load announcement parent links" }, 500);
-    }
-    const linkedParentIds = [...new Set(
-      (links || [])
-        .map((link) => link.parent_user_id)
-        .filter((id) => id && id !== announcement.created_by),
-    )];
-    if (linkedParentIds.length) {
-      const { data: activeParents, error: parentsError } = await adminClient
-        .from("profiles")
-        .select("id")
-        .in("id", linkedParentIds)
-        .eq("role", "parent")
-        .eq("status", "active");
-      if (parentsError) {
-        console.error("Could not verify active announcement parents:", parentsError.message);
-        return json({ error: "Could not verify active announcement parents" }, 500);
-      }
-      (activeParents || []).forEach((parent) => {
-        parentUserIds.add(parent.id);
-        recipientIds.add(parent.id);
-      });
-    }
   }
 
   if (!recipientIds.size) return json({ sent: 0, expired: 0, recipients: 0 });
@@ -256,12 +144,10 @@ async function sendAnnouncementPush(announcement: PushWebhook["record"]) {
     ? `${announcement.title}: ${messagePreview}`.slice(0, 180)
     : announcement.title;
 
-  return await deliverPushes(subscriptions || [], (subscription) => ({
+  return await deliverPushes(subscriptions || [], () => ({
     title,
     body,
-    url: parentUserIds.has(subscription.user_id)
-      ? "/html/parent-dashboard.html"
-      : "/html/dashboard.html",
+    url: "/html/dashboard.html",
   }));
 }
 
