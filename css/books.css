@@ -460,3 +460,96 @@ body {
 
 @media screen and (max-width: 768px) {
 }
+
+body.app-dark .book-card {
+  border-color: #353535;
+  background: #1c1c1c;
+  color: #f8fafc;
+}
+
+body.app-dark .book-card-category {
+  color: #a5b4fc;
+}
+
+body.app-dark .book-card-title,
+body.app-dark .student-modal-header h3,
+body.app-dark .book-history-book h4,
+body.app-dark .book-history-section-title {
+  color: #f8fafc;
+}
+
+body.app-dark .book-card-author,
+body.app-dark .book-copies-text,
+body.app-dark .book-history-book p {
+  color: #cbd5e1;
+}
+
+body.app-dark .book-card-footer,
+body.app-dark .student-modal-header,
+body.app-dark .book-history-book {
+  border-color: #3f3f46;
+}
+
+body.app-dark .book-view-details-btn {
+  background: #1e3a8a;
+  color: #dbeafe;
+}
+
+body.app-dark .book-view-details-btn:hover {
+  background: #1d4ed8;
+  color: #fff;
+}
+
+body.app-dark .badge-available {
+  background: #12351f;
+  color: #86efac;
+}
+
+body.app-dark .badge-unavailable {
+  background: #431b1b;
+  color: #fca5a5;
+}
+
+body.app-dark .book-history-borrower {
+  border-color: #3f3f46;
+  background: #222;
+  color: #f8fafc;
+}
+
+body.app-dark .book-history-borrower .app-person-meta {
+  color: #f8fafc;
+}
+
+body.app-dark .student-modal-close-btn {
+  border-color: #52525b;
+  background: #27272a;
+  color: #f8fafc;
+}
+
+body.app-dark .status-borrowed {
+  background: #422006;
+  color: #fcd34d;
+}
+
+body.app-dark .status-returned {
+  background: #12351f;
+  color: #86efac;
+}
+
+body.app-dark .books-page-notice {
+  border-color: #1e40af;
+  background: #172554;
+  color: #dbeafe;
+}
+
+body.app-dark .books-page-notice[data-type="error"] {
+  border-color: #7f1d1d;
+  background: #450a0a;
+  color: #fecaca;
+}
+
+body.app-dark .books-page-notice[data-type="graduated"] {
+  border-color: #854d0e;
+  background: #422006;
+  color: #fde68a;
+}
