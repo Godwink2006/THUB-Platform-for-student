@@ -78,8 +78,8 @@ body.app-dark .student-bottom-nav__badge:not([hidden]) {
 
 .student-bottom-nav__link:hover,
 .student-bottom-nav__link.is-active {
-  color: #2b2b2b;
-  background: #2b2b2b;
+  color: #2563eb;
+  background: #eff6ff;
 }
 
 .student-bottom-nav__link:active {
@@ -98,6 +98,7 @@ body.app-dark .student-bottom-nav__link {
 body.app-dark .student-bottom-nav__link:hover,
 body.app-dark .student-bottom-nav__link.is-active {
   background: #2b2b2b;
+  color: #fff;
 }
 
 tbody tr:hover {

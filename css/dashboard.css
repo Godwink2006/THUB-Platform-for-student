@@ -88,7 +88,7 @@ html.announcement-delete-open body {
   padding: 20px;
   margin-bottom: 24px;
   box-shadow: 0 0 15px 1px rgba(0, 0, 0, 0.03);
-  border-radius: 10px;
+  border-radius: 20px;
 }
 
 .card-header {
@@ -150,7 +150,7 @@ html.announcement-delete-open body {
   padding: 14px 16px;
   border-bottom: 0.5px solid rgb(219, 215, 215);
   background: #f9fafb;
-  border-radius: 10px;
+  border-radius: 20px;
 }
 
 .announcement-item h4 {
@@ -174,13 +174,13 @@ html.announcement-delete-open body {
   background: #fff;
   color: #64748b;
   text-align: center;
-  border-radius: 10px;
+  border-radius: 20px;
 }
 
 .dashboard-announcement {
   background: #fff;
   border: 0.5px solid rgb(219, 215, 215);
-  border-radius: 10px;
+  border-radius: 20px;
 }
 
 .dashboard-announcement h4 {
@@ -343,7 +343,7 @@ html.announcement-delete-open body {
   margin-bottom: 15px;
   padding: 10px;
   border: 1px solid #e5e7eb;
-  border-radius: 10px;
+  border-radius: 20px;
   background: #fff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
@@ -354,7 +354,7 @@ html.announcement-delete-open body {
   width: 46px;
   height: 46px;
   place-items: center;
-  border-radius: 10px;
+  border-radius: 20px;
   background: #eff6ff;
   color: #2563eb;
   font-size: 19px;
@@ -387,7 +387,7 @@ html.announcement-delete-open body {
 }
 
 .announcement-cards {
-  border-radius: 10px;
+  border-radius: 20px;
 }
 
 body.app-dark .dashboard-profile-name,
@@ -502,7 +502,7 @@ body.app-dark .student-attendance-copy p {
   width: auto;
   max-width: 100%;
   padding: 4px 9px;
-  border-radius: 999px;
+  border-radius: 20px;
   background: #eff6ff;
   color: #1d4ed8;
   font-size: 12px;
