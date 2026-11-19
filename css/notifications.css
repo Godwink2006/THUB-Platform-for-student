@@ -410,17 +410,6 @@ body.app-dark .delete-notification:hover:not(:disabled) {
   transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
 }
 
-.notifications-refresh-button:hover:not(:disabled) {
-  border-color: #93c5fd;
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.notifications-refresh-button:disabled {
-  opacity: 0.65;
-  cursor: wait;
-}
-
 #markAllReadBtn {
   flex: 0 0 auto;
   min-height: 40px;
@@ -449,12 +438,6 @@ body.app-dark .notifications-refresh-button {
   border-color: #3f3f46;
   background: #1c1c1c;
   color: #e4e4e7;
-}
-
-body.app-dark .notifications-refresh-button:hover:not(:disabled) {
-  border-color: #0e7490;
-  background: #17252b;
-  color: #67e8f9;
 }
 
 @media screen and (max-width: 600px) {
