@@ -37,9 +37,6 @@ async function loadStudentDashboard() {
     if (preview) {
       preview.innerHTML = '<div class="announcement-item"><p>Announcements could not be loaded. Refresh the page and try again.</p></div>';
     }
-  } finally {
-    document.body.classList.remove("dashboard-auth-checking");
-    document.getElementById("dashboardAuthLoading")?.remove();
   }
 }
 

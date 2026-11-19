@@ -16,94 +16,6 @@ html.announcement-delete-open body {
 }
 
 
-body.dashboard-auth-checking {
-  background: #fff;
-}
-
-body.dashboard-auth-checking .dashboard-container {
-  visibility: hidden;
-}
-
-.dashboard-auth-loading {
-  display: none;
-}
-
-body.dashboard-auth-checking .dashboard-auth-loading {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: #fff;
-  color: #475569;
-  text-align: center;
-}
-
-body.dashboard-auth-error-open .dashboard-auth-loading {
-  position: fixed;
-  inset: 0;
-  z-index: 99999;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-  background: rgb(15 23 42 / 48%);
-  color: #475569;
-  text-align: center;
-}
-
-body.dashboard-auth-error-open .dashboard-container {
-  visibility: visible;
-}
-
-.dashboard-auth-loading__content {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  text-align: center;
-}
-
-.dashboard-auth-loading__logo {
-  width: 92px;
-  height: 92px;
-  border-radius: 22px;
-}
-
-.dashboard-auth-loading__content h1 {
-  margin: 0;
-  color: #172554;
-  font-size: clamp(20px, 5vw, 26px);
-  font-weight: 700;
-}
-
-body.dashboard-auth-error-open .dashboard-auth-loading__content {
-  width: min(100%, 480px);
-  padding: 28px;
-  border: 0.5px solid #e2e8f0;
-  background: #fff;
-  box-shadow: 0 24px 60px rgb(15 23 42 / 24%);
-}
-
-.dashboard-auth-loading__content p {
-  margin: 0;
-  font-size: 0.95rem;
-}
-
-.dashboard-auth-loading__retry {
-  padding: 9px 16px;
-  border: 0;
-
-  background: #2563eb;
-  color: #fff;
-  font: inherit;
-  cursor: pointer;
-}
-
-.dashboard-auth-loading__retry:focus-visible {
-  outline: 0.5px solid #93c5fd;
-  outline-offset: 3px;
-}
-
 .dashboard-container {
   display: flex;
 }
@@ -809,8 +721,6 @@ body.dashboard-auth-error-open .dashboard-auth-loading__content {
   .announcement-confirm-modal,
   .announcement-confirm-actions button,
   .dashboard-error-retry,
-  body.dashboard-auth-error-open .dashboard-auth-loading__content,
-.dashboard-auth-loading__retry,
 
   .date-modal-content,
   .announcement-modal-content {
@@ -1016,14 +926,7 @@ body.app-dark .cancel-btn {
   color: #fff;
 }
 
-body.app-dark .dashboard-auth-loading {
-  background: #222;
-  color: #fff;
-}
 
-body.app-dark .dashboard-auth-loading__content h1 {
-  color: #fff;
-}
 
 .date-modal-header {
   padding: 10px;

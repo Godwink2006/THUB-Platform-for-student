@@ -11,58 +11,6 @@ body {
   overflow-y: auto;
 }
 
-body.login-auth-checking {
-  background: #fff;
-  overflow: hidden;
-}
-
-body.login-auth-checking::before,
-body.login-auth-checking::after,
-body.login-auth-checking .login-container,
-body.login-auth-checking #toastContainer {
-  display: none !important;
-}
-
-.login-session-check {
-  display: none;
-}
-
-body.login-auth-checking .login-session-check {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #fff;
-  color: #334155;
-  z-index: 9999;
-}
-
-.login-session-check__content {
-  display: grid;
-  justify-items: center;
-  gap: 12px;
-  padding: 24px;
-  text-align: center;
-}
-
-.login-session-check__content img {
-  width: 92px;
-  height: 92px;
-  border-radius: 22px;
-}
-
-.login-session-check__content h1 {
-  color: #172554;
-  font-size: clamp(20px, 5vw, 26px);
-  font-weight: 700;
-}
-
-.login-session-check__content p {
-  color: #64748b;
-  font-size: 14px;
-}
-
 body::before {
   content: "";
   position: fixed;

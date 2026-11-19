@@ -337,8 +337,6 @@ window.forceLogout = async function () {
 async function checkPageAccess() {
   if (isLoginPage()) return;
 
-  document.documentElement.style.visibility = "hidden";
-
   if (!window.supabaseClient) {
     window.location.replace("/index.html?error=service_unavailable");
     return;
@@ -362,7 +360,6 @@ async function checkPageAccess() {
     return;
   }
 
-  document.documentElement.style.visibility = "";
 }
 
 checkPageAccess();
@@ -516,10 +513,6 @@ window.addEventListener("pageshow", async (event) => {
   ) {
     if (!window.supabaseClient) return;
 
-    if (isLoginPage()) {
-      document.body.classList.add("login-auth-checking");
-    }
-
     window.clearAuthContext?.();
     const authCtx = await window.getAuthContext(true);
     const user = authCtx?.user;
@@ -534,7 +527,6 @@ window.addEventListener("pageshow", async (event) => {
         }
         return;
       }
-      document.body.classList.remove("login-auth-checking");
     }
 
     if (!isLoginPage() && !user) {
@@ -874,50 +866,6 @@ function parseAssessmentPeriodIds(value) {
     return [String(value)];
   }
 }
-
-const AUTH_WELCOME_STARTED_AT_KEY = "tHubAuthWelcomeStartedAt";
-let authWelcomeCompletionPromise = null;
-
-window.beginAuthWelcome = function () {
-  document.documentElement.classList.add("auth-welcome-open");
-  try {
-    if (!sessionStorage.getItem(AUTH_WELCOME_STARTED_AT_KEY)) {
-      sessionStorage.setItem(AUTH_WELCOME_STARTED_AT_KEY, String(Date.now()));
-    }
-  } catch (error) {
-    console.warn("Could not record the welcome screen start time:", error);
-  }
-};
-
-window.clearAuthWelcome = function () {
-  document.documentElement.classList.remove("auth-welcome-open");
-  try {
-    sessionStorage.removeItem(AUTH_WELCOME_STARTED_AT_KEY);
-  } catch (error) {
-    console.warn("Could not clear the welcome screen start time:", error);
-  }
-};
-
-window.completeAuthWelcome = function () {
-  if (authWelcomeCompletionPromise) return authWelcomeCompletionPromise;
-
-  let startedAt = 0;
-  try {
-    startedAt = Number(sessionStorage.getItem(AUTH_WELCOME_STARTED_AT_KEY)) || 0;
-  } catch (error) {
-    console.warn("Could not read the welcome screen start time:", error);
-  }
-  if (!startedAt) return Promise.resolve();
-
-  const remainingMs = Math.max(0, 5000 - (Date.now() - startedAt));
-  authWelcomeCompletionPromise = new Promise((resolve) => {
-    window.setTimeout(resolve, remainingMs);
-  }).finally(() => {
-    window.clearAuthWelcome();
-    authWelcomeCompletionPromise = null;
-  });
-  return authWelcomeCompletionPromise;
-};
 
 function prependActivityToUI(activity) {
   const listContainer = document.getElementById("recentActivitiesList");

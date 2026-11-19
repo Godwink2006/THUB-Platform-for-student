@@ -4,14 +4,10 @@ function togglePassword(id) {
 }
 
 const form = document.getElementById("loginForm");
-window.beginAuthWelcome?.();
 
 async function redirectIfAlreadySignedIn() {
   const client = window.supabaseClient;
-  if (!client?.auth) {
-    document.body.classList.remove("login-auth-checking");
-    return;
-  }
+  if (!client?.auth) return;
 
   try {
     const {
@@ -19,11 +15,7 @@ async function redirectIfAlreadySignedIn() {
       error: userError,
     } = await client.auth.getUser();
     if (userError) throw userError;
-    if (!user) {
-      window.clearAuthWelcome?.();
-      document.body.classList.remove("login-auth-checking");
-      return;
-    }
+    if (!user) return;
 
     const { data: profile, error: profileError } = await client
       .from("profiles")
@@ -34,15 +26,11 @@ async function redirectIfAlreadySignedIn() {
 
     if (!profile || String(profile.status || "").toLowerCase() !== "active") {
       await client.auth.signOut();
-      window.clearAuthWelcome?.();
-      document.body.classList.remove("login-auth-checking");
       return;
     }
 
     if (String(profile.role || "").trim().toLowerCase() !== "student") {
       await client.auth.signOut();
-      window.clearAuthWelcome?.();
-      document.body.classList.remove("login-auth-checking");
       return;
     }
 
@@ -52,8 +40,6 @@ async function redirectIfAlreadySignedIn() {
     console.warn("Could not restore the signed-in user's role:", error);
   }
 
-  window.clearAuthWelcome?.();
-  document.body.classList.remove("login-auth-checking");
 }
 
 redirectIfAlreadySignedIn();
@@ -119,13 +105,7 @@ form.addEventListener("submit", async (e) => {
       );
     }
 
-    window.beginAuthWelcome?.();
-    document.body.classList.add("login-auth-checking");
-    showToast("Login successful!", "success");
-
-    setTimeout(() => {
-      window.location.replace("/html/dashboard.html");
-    }, 800);
+    window.location.replace("/html/dashboard.html");
   } catch (err) {
     showToast(err.message, "error");
     console.error(err);
