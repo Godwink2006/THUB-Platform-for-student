@@ -6,11 +6,13 @@ let booksOffset = 0;
 let booksHasMore = false;
 let booksLoading = false;
 let booksAccessLoading = false;
+let booksAccessVerified = false;
 let booksGraduatedAccess = false;
 let booksCacheKey = "";
 let booksStudentId = "";
 let booksSchoolId = "";
 let booksEnrollmentStatus = "";
+let booksCacheRestored = false;
 
 function readBooksCache() {
   if (!booksCacheKey) return null;
@@ -66,17 +68,9 @@ function restoreCachedBooksPage() {
     booksStudentId = savedAccess.studentId;
     booksSchoolId = savedAccess.schoolId || "";
     booksEnrollmentStatus = savedAccess.enrollmentStatus || "";
-    booksGraduatedAccess = savedAccess.graduated === true;
+    // Stored enrollment is only a cache hint; initializeBooksPage revalidates it with Supabase.
+    booksGraduatedAccess = false;
     booksCacheKey = savedAccess.cacheKey || `${BOOKS_CACHE_PREFIX}${booksStudentId}:${booksSchoolId || "no-school"}`;
-
-    if (booksGraduatedAccess) {
-      showBooksNotice(
-        "Books are unavailable because your enrollment at this school is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
-        "graduated",
-      );
-      document.getElementById("bookCardGrid")?.replaceChildren();
-      return true;
-    }
 
     const cachedCatalog = readBooksCache();
     if (!cachedCatalog || cachedCatalog.studentId !== booksStudentId) return false;
@@ -84,6 +78,7 @@ function restoreCachedBooksPage() {
     allCatalogBooks = cachedCatalog.books;
     booksOffset = allCatalogBooks.length;
     booksHasMore = cachedCatalog.hasMore === true;
+    booksCacheRestored = true;
     const query = document.getElementById("catalogSearchInput")?.value.toLowerCase().trim() || "";
     renderBookCards(filterCatalogBooks(query));
     updateBooksNextButton();
@@ -179,14 +174,19 @@ function showBooksCatalogLoading() {
   `;
 }
 
-async function initializeBooksPage() {
+async function initializeBooksPage(options = {}) {
   if (booksAccessLoading) return;
+  const forceCatalogRefresh = options.forceCatalogRefresh === true;
+  const cachedStudentId = booksStudentId;
+  const cachedSchoolId = booksSchoolId;
+  let matchingCachedCatalog = false;
   booksAccessLoading = true;
+  booksAccessVerified = false;
   booksGraduatedAccess = false;
   hideBooksNotice();
-  showBooksCatalogLoading();
   const refreshButton = document.getElementById("refreshBooksCatalog");
-  if (refreshButton) {
+  if (!booksCacheRestored || forceCatalogRefresh) showBooksCatalogLoading();
+  if (forceCatalogRefresh && refreshButton) {
     refreshButton.disabled = true;
     refreshButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>';
   }
@@ -201,6 +201,15 @@ async function initializeBooksPage() {
       throw error;
     }
 
+    matchingCachedCatalog = booksCacheRestored && cachedStudentId === authData.user.id;
+    if (booksCacheRestored && !matchingCachedCatalog) {
+      allCatalogBooks = [];
+      booksOffset = 0;
+      booksHasMore = false;
+      booksCacheRestored = false;
+      showBooksCatalogLoading();
+    }
+
     const { data: profile, error: profileError } = await window.supabaseClient
       .from("profiles")
       .select("role, school_id")
@@ -209,27 +218,36 @@ async function initializeBooksPage() {
     if (profileError) throw profileError;
     booksStudentId = authData.user.id;
     booksSchoolId = profile?.school_id || "";
-    booksCacheKey = `${BOOKS_CACHE_PREFIX}${authData.user.id}:${profile?.school_id || "no-school"}`;
-
-    if (String(profile?.role || "").trim().toLowerCase() === "student") {
-      let enrollmentQuery = window.supabaseClient
-        .from("student_enrollments")
-        .select("enrollment_status")
-        .eq("student_id", authData.user.id);
-      if (profile.school_id) enrollmentQuery = enrollmentQuery.eq("school_id", profile.school_id);
-
-      const { data: enrollments, error: enrollmentError } = await enrollmentQuery;
-      if (enrollmentError) throw enrollmentError;
-      const enrollmentStatuses = [...new Set((enrollments || [])
-        .map((enrollment) => String(enrollment.enrollment_status || "").trim().toLowerCase())
-        .filter(Boolean))];
-      booksEnrollmentStatus = enrollmentStatuses.join(", ") || "no enrollment record";
-      booksGraduatedAccess = enrollmentStatuses.some((status) =>
-        ["graduated", "transferred", "transfered"].includes(status),
-      );
-    } else {
-      booksEnrollmentStatus = "not a student";
+    matchingCachedCatalog = matchingCachedCatalog && cachedSchoolId === booksSchoolId;
+    if (booksCacheRestored && !matchingCachedCatalog) {
+      allCatalogBooks = [];
+      booksOffset = 0;
+      booksHasMore = false;
+      booksCacheRestored = false;
+      showBooksCatalogLoading();
     }
+    booksCacheKey = `${BOOKS_CACHE_PREFIX}${authData.user.id}:${booksSchoolId || "no-school"}`;
+
+    if (String(profile?.role || "").trim().toLowerCase() !== "student") {
+      throw new Error("The library catalog is available to student accounts only.");
+    }
+
+    let enrollmentQuery = window.supabaseClient
+      .from("student_enrollments")
+      .select("enrollment_status")
+      .eq("student_id", authData.user.id);
+    if (booksSchoolId) enrollmentQuery = enrollmentQuery.eq("school_id", booksSchoolId);
+
+    const { data: enrollments, error: enrollmentError } = await enrollmentQuery;
+    if (enrollmentError) throw enrollmentError;
+    const enrollmentStatuses = [...new Set((enrollments || [])
+      .map((enrollment) => String(enrollment.enrollment_status || "").trim().toLowerCase())
+      .filter(Boolean))];
+    booksEnrollmentStatus = enrollmentStatuses.join(", ") || "no enrollment record";
+    booksGraduatedAccess = enrollmentStatuses.some((status) =>
+      ["graduated", "transferred", "transfered"].includes(status),
+    );
+    booksAccessVerified = true;
 
     saveBooksAccess();
     if (booksGraduatedAccess) {
@@ -241,6 +259,7 @@ async function initializeBooksPage() {
       allCatalogBooks = [];
       booksOffset = 0;
       booksHasMore = false;
+      booksCacheRestored = false;
       document.getElementById("bookCardGrid")?.replaceChildren();
       showBooksNotice(
         "Books are unavailable because your enrollment at this school is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
@@ -250,14 +269,23 @@ async function initializeBooksPage() {
     }
 
     hideBooksNotice();
+    if (matchingCachedCatalog && !forceCatalogRefresh) {
+      saveBooksCache();
+      updateBooksNextButton();
+      return;
+    }
+    booksCacheRestored = false;
     await loadBookCatalog();
   } catch (error) {
     console.error("Could not determine Books page access:", error);
+    allCatalogBooks = [];
+    booksCacheRestored = false;
+    booksAccessVerified = false;
     document.getElementById("bookCardGrid")?.replaceChildren();
-    showBooksNotice(booksErrorMessage(error), "error", initializeBooksPage);
+    showBooksNotice(booksErrorMessage(error), "error", () => initializeBooksPage({ forceCatalogRefresh: true }));
   } finally {
     booksAccessLoading = false;
-    if (refreshButton) {
+    if (forceCatalogRefresh && refreshButton) {
       refreshButton.disabled = false;
       refreshButton.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
     }
@@ -265,6 +293,7 @@ async function initializeBooksPage() {
 }
 
 async function loadBookCatalog(options = {}) {
+  if (!booksAccessVerified) return;
   const gridContainer = document.getElementById("bookCardGrid");
   if (!gridContainer) return;
   const append = options.append === true;
@@ -444,12 +473,17 @@ document.addEventListener("DOMContentLoaded", () => {
     ?.addEventListener("click", () => loadBookCatalog({ append: true }));
   document
     .getElementById("refreshBooksCatalog")
-    ?.addEventListener("click", initializeBooksPage);
+    ?.addEventListener("click", () => initializeBooksPage({ forceCatalogRefresh: true }));
 
-  if (!restoreCachedBooksPage()) initializeBooksPage();
+  restoreCachedBooksPage();
+  initializeBooksPage();
 });
 
 async function openStudentBookHistoryModal(bookId) {
+  if (!booksAccessVerified) {
+    showToast("Checking your student access. Please try again in a moment.", "info");
+    return;
+  }
   if (booksGraduatedAccess) {
     showToast("Borrowing history is unavailable because your enrollment is marked as graduated or transferred.", "error");
     return;
