@@ -74,6 +74,47 @@
   gap: 1rem;
 }
 
+.books-refresh-button {
+  display: inline-flex;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 14px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.books-refresh-button:hover:not(:disabled) {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.books-refresh-button:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+body.app-dark .books-refresh-button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .books-refresh-button:hover:not(:disabled) {
+  border-color: #0e7490;
+  background: #17252b;
+  color: #67e8f9;
+}
+
 .empty-state-card {
   text-align: center;
   padding: 3rem 2rem;
@@ -129,23 +170,38 @@
 }
 
 .books-pagination button {
-  border: 0;
-  border-radius: 8px;
-  padding: 11px 24px;
-  background: #2563eb;
-  color: #fff;
+  min-height: 42px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 0 24px;
+  background: #fff;
+  color: #334155;
   font: inherit;
   font-weight: 600;
   cursor: pointer;
 }
 
 .books-pagination button:hover:not(:disabled) {
-  background: #1d4ed8;
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .books-pagination button:disabled {
   opacity: 0.65;
   cursor: wait;
+}
+
+body.app-dark .books-pagination button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .books-pagination button:hover:not(:disabled) {
+  border-color: #0e7490;
+  background: #17252b;
+  color: #67e8f9;
 }
 
 .book-card {

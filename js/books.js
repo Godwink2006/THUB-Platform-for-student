@@ -1,10 +1,106 @@
 let allCatalogBooks = [];
-const BOOKS_PAGE_SIZE = 30;
+const BOOKS_PAGE_SIZE = 10;
+const BOOKS_CACHE_PREFIX = "thubStudentBooksCatalog:v1:";
+const BOOKS_LAST_ACCESS_KEY = "thubStudentBooksAccess:v1";
 let booksOffset = 0;
 let booksHasMore = false;
 let booksLoading = false;
 let booksAccessLoading = false;
 let booksGraduatedAccess = false;
+let booksCacheKey = "";
+let booksStudentId = "";
+let booksSchoolId = "";
+let booksEnrollmentStatus = "";
+
+function readBooksCache() {
+  if (!booksCacheKey) return null;
+  try {
+    const cached = JSON.parse(localStorage.getItem(booksCacheKey) || "null");
+    if (
+      !cached ||
+      !Array.isArray(cached.books)
+    ) return null;
+    return cached;
+  } catch (error) {
+    console.warn("Could not read the saved books catalog:", error);
+    return null;
+  }
+}
+
+function saveBooksCache() {
+  if (!booksCacheKey) return;
+  try {
+    localStorage.setItem(booksCacheKey, JSON.stringify({
+      savedAt: Date.now(),
+      studentId: booksStudentId,
+      schoolId: booksSchoolId,
+      enrollmentStatus: booksEnrollmentStatus,
+      books: allCatalogBooks,
+      hasMore: booksHasMore,
+    }));
+  } catch (error) {
+    console.warn("Could not save the books catalog locally:", error);
+  }
+}
+
+function saveBooksAccess() {
+  if (!booksStudentId) return;
+  try {
+    localStorage.setItem(BOOKS_LAST_ACCESS_KEY, JSON.stringify({
+      studentId: booksStudentId,
+      schoolId: booksSchoolId,
+      enrollmentStatus: booksEnrollmentStatus,
+      graduated: booksGraduatedAccess,
+      cacheKey: booksCacheKey,
+    }));
+  } catch (error) {
+    console.warn("Could not save student enrollment locally:", error);
+  }
+}
+
+function restoreCachedBooksPage() {
+  try {
+    const savedAccess = JSON.parse(localStorage.getItem(BOOKS_LAST_ACCESS_KEY) || "null");
+    if (!savedAccess?.studentId) return false;
+
+    booksStudentId = savedAccess.studentId;
+    booksSchoolId = savedAccess.schoolId || "";
+    booksEnrollmentStatus = savedAccess.enrollmentStatus || "";
+    booksGraduatedAccess = savedAccess.graduated === true;
+    booksCacheKey = savedAccess.cacheKey || `${BOOKS_CACHE_PREFIX}${booksStudentId}:${booksSchoolId || "no-school"}`;
+
+    if (booksGraduatedAccess) {
+      showBooksNotice(
+        "Books are unavailable because your enrollment at this school is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
+        "graduated",
+      );
+      document.getElementById("bookCardGrid")?.replaceChildren();
+      return true;
+    }
+
+    const cachedCatalog = readBooksCache();
+    if (!cachedCatalog || cachedCatalog.studentId !== booksStudentId) return false;
+
+    allCatalogBooks = cachedCatalog.books;
+    booksOffset = allCatalogBooks.length;
+    booksHasMore = cachedCatalog.hasMore === true;
+    const query = document.getElementById("catalogSearchInput")?.value.toLowerCase().trim() || "";
+    renderBookCards(filterCatalogBooks(query));
+    updateBooksNextButton();
+    return true;
+  } catch (error) {
+    console.warn("Could not restore the saved Books page:", error);
+    return false;
+  }
+}
+
+function updateBooksNextButton() {
+  const nextButton = document.getElementById("nextBooksPage");
+  if (!nextButton) return;
+  nextButton.hidden = !booksHasMore;
+  nextButton.disabled = false;
+  nextButton.textContent = "Next";
+}
 
 function booksErrorMessage(error, action = "load") {
   const code = String(error?.code || "").toLowerCase();
@@ -72,11 +168,28 @@ function hideBooksNotice() {
   }
 }
 
+function showBooksCatalogLoading() {
+  const gridContainer = document.getElementById("bookCardGrid");
+  if (!gridContainer) return;
+  gridContainer.innerHTML = `
+    <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #64748b;">
+      <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem; font-size: 1.2rem;"></i>
+      Loading books...
+    </div>
+  `;
+}
+
 async function initializeBooksPage() {
   if (booksAccessLoading) return;
   booksAccessLoading = true;
   booksGraduatedAccess = false;
-  showBooksNotice("Checking your student account...");
+  hideBooksNotice();
+  showBooksCatalogLoading();
+  const refreshButton = document.getElementById("refreshBooksCatalog");
+  if (refreshButton) {
+    refreshButton.disabled = true;
+    refreshButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>';
+  }
 
   try {
     if (!window.supabaseClient) throw new Error("The database client is unavailable.");
@@ -94,6 +207,9 @@ async function initializeBooksPage() {
       .eq("id", authData.user.id)
       .single();
     if (profileError) throw profileError;
+    booksStudentId = authData.user.id;
+    booksSchoolId = profile?.school_id || "";
+    booksCacheKey = `${BOOKS_CACHE_PREFIX}${authData.user.id}:${profile?.school_id || "no-school"}`;
 
     if (String(profile?.role || "").trim().toLowerCase() === "student") {
       let enrollmentQuery = window.supabaseClient
@@ -104,14 +220,28 @@ async function initializeBooksPage() {
 
       const { data: enrollments, error: enrollmentError } = await enrollmentQuery;
       if (enrollmentError) throw enrollmentError;
-      booksGraduatedAccess = (enrollments || []).some((enrollment) =>
-        ["graduated", "transferred", "transfered"].includes(
-          String(enrollment.enrollment_status || "").trim().toLowerCase(),
-        ),
+      const enrollmentStatuses = [...new Set((enrollments || [])
+        .map((enrollment) => String(enrollment.enrollment_status || "").trim().toLowerCase())
+        .filter(Boolean))];
+      booksEnrollmentStatus = enrollmentStatuses.join(", ") || "no enrollment record";
+      booksGraduatedAccess = enrollmentStatuses.some((status) =>
+        ["graduated", "transferred", "transfered"].includes(status),
       );
+    } else {
+      booksEnrollmentStatus = "not a student";
     }
 
+    saveBooksAccess();
     if (booksGraduatedAccess) {
+      try {
+        localStorage.removeItem(booksCacheKey);
+      } catch (error) {
+        console.warn("Could not clear the saved Books catalog:", error);
+      }
+      allCatalogBooks = [];
+      booksOffset = 0;
+      booksHasMore = false;
+      document.getElementById("bookCardGrid")?.replaceChildren();
       showBooksNotice(
         "Books are unavailable because your enrollment at this school is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
         "graduated",
@@ -123,9 +253,14 @@ async function initializeBooksPage() {
     await loadBookCatalog();
   } catch (error) {
     console.error("Could not determine Books page access:", error);
+    document.getElementById("bookCardGrid")?.replaceChildren();
     showBooksNotice(booksErrorMessage(error), "error", initializeBooksPage);
   } finally {
     booksAccessLoading = false;
+    if (refreshButton) {
+      refreshButton.disabled = false;
+      refreshButton.innerHTML = '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+    }
   }
 }
 
@@ -147,12 +282,7 @@ async function loadBookCatalog(options = {}) {
       nextButton.disabled = false;
       nextButton.textContent = "Next";
     }
-    gridContainer.innerHTML = `
-      <div style="grid-column: 1 / -1; text-align: center; padding: 3rem; color: #64748b;">
-        <i class="fa-solid fa-spinner fa-spin" style="margin-right: 0.5rem; font-size: 1.2rem;"></i>
-        Loading library catalog...
-      </div>
-    `;
+    showBooksCatalogLoading();
   } else if (nextButton) {
     nextButton.disabled = true;
     nextButton.textContent = "Loading...";
@@ -181,6 +311,7 @@ async function loadBookCatalog(options = {}) {
 
     if (visibleBooks.length === 0) {
       if (!append) renderBookCards([]);
+      saveBooksCache();
       return;
     }
 
@@ -200,6 +331,7 @@ async function loadBookCatalog(options = {}) {
     allCatalogBooks = append
       ? allCatalogBooks.concat(catalogPage)
       : catalogPage;
+    saveBooksCache();
     const query = document
       .getElementById("catalogSearchInput")
       ?.value.toLowerCase().trim() || "";
@@ -212,11 +344,7 @@ async function loadBookCatalog(options = {}) {
     }
   } finally {
     booksLoading = false;
-    if (nextButton) {
-      nextButton.hidden = !booksHasMore;
-      nextButton.disabled = false;
-      nextButton.textContent = "Next";
-    }
+    updateBooksNextButton();
   }
 }
 
@@ -314,7 +442,11 @@ document.addEventListener("DOMContentLoaded", () => {
   document
     .getElementById("nextBooksPage")
     ?.addEventListener("click", () => loadBookCatalog({ append: true }));
-  initializeBooksPage();
+  document
+    .getElementById("refreshBooksCatalog")
+    ?.addEventListener("click", initializeBooksPage);
+
+  if (!restoreCachedBooksPage()) initializeBooksPage();
 });
 
 async function openStudentBookHistoryModal(bookId) {
