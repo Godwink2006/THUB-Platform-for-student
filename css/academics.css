@@ -110,7 +110,7 @@ body {
   background: linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%);
   background-size: 200% 100%;
   animation: skeleton-loading 1.5s infinite;
-  border-radius: 4px;
+  border-radius: 20px;
 }
 
 .skeleton-title {
@@ -169,13 +169,13 @@ body {
   .academic-card .manage-btn,
   .academic-card .manage-academic-btn,
   .academic-card {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .academic-cards {
     grid-template-columns: 1fr;
     gap: 15px;
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .button-group {
@@ -260,7 +260,7 @@ body {
   margin: 0 auto;
   overflow: hidden;
   border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  border-radius: 20px;
   background: #fff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
@@ -294,7 +294,7 @@ body {
   height: 48px;
   align-items: center;
   justify-content: center;
-  border-radius: 14px;
+  border-radius: 20px;
   background: #eff6ff;
   color: #2563eb;
   font-size: 20px;
