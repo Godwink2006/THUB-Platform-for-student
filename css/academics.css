@@ -334,14 +334,19 @@ body.app-dark .academic-link-row + .academic-link-row {
 }
 
 body.app-dark .academic-link-icon {
-  background: rgba(37, 99, 235, 0.18);
-  color: #93c5fd;
+  background: #444;
+  color: #888;
 }
 
 body.app-dark .academic-link-row:hover,
 body.app-dark .academic-link-row:focus-visible {
-  background: #202a3c;
-  color: #93c5fd;
+  background: #111;
+}
+
+body.app-dark .academic-link-row:hover .academic-link-icon,
+body.app-dark .academic-link-row:focus-visible .academic-link-icon {
+  background: #555;
+  color: #777;
 }
 
 @media screen and (max-width: 600px) {
