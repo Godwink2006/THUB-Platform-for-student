@@ -18,9 +18,14 @@ function applySavedAppTheme() {
     toggle.setAttribute("aria-pressed", String(dark));
     toggle.setAttribute("aria-label", label);
     toggle.title = label;
-    toggle.innerHTML = dark
-      ? '<i class="fa-solid fa-sun" aria-hidden="true"></i><span>Light mode</span>'
-      : '<i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>';
+    const modeLabel = toggle.querySelector(".settings-theme-mode");
+    if (modeLabel) {
+      modeLabel.textContent = dark ? "Light mode" : "Dark mode";
+    } else {
+      toggle.innerHTML = dark
+        ? '<i class="fa-solid fa-sun" aria-hidden="true"></i><span>Light mode</span>'
+        : '<i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>';
+    }
   };
 
   if (toggle) updateToggle(isDark);
@@ -33,9 +38,14 @@ function applySavedAppTheme() {
       const label = dark ? "Switch to light mode" : "Switch to dark mode";
       themeToggle.setAttribute("aria-label", label);
       themeToggle.title = label;
-      themeToggle.innerHTML = dark
-        ? '<i class="fa-solid fa-sun" aria-hidden="true"></i><span>Light mode</span>'
-        : '<i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>';
+      const modeLabel = themeToggle.querySelector(".settings-theme-mode");
+      if (modeLabel) {
+        modeLabel.textContent = dark ? "Light mode" : "Dark mode";
+      } else {
+        themeToggle.innerHTML = dark
+          ? '<i class="fa-solid fa-sun" aria-hidden="true"></i><span>Light mode</span>'
+          : '<i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>';
+      }
     });
   };
   if (toggle && !toggle.dataset.themeBound) {

@@ -1,70 +1,41 @@
 async function initSettingsPage() {
   const containerEl = document.getElementById("settingsContainer");
+  void loadSettingsSchoolHeader();
 
   try {
     if (containerEl) {
       const allCardsHTML = `
-        <div class="setting-card">
-          <h4>My Profile</h4>
-          <p>Manage profile.</p>
-          <button onclick="window.location.href = 'my-profile.html'" class="manage-btn">
-            Manage Profile <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-        <div class="setting-card">
-          <h4>Appearance</h4>
-          <p>Choose light or dark mode for the app.</p>
-          <button type="button" class="manage-btn app-theme-toggle" id="appThemeToggle" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
-            <i class="fa-solid fa-moon" aria-hidden="true"></i><span>Dark mode</span>
-          </button>
-        </div>
-
-        <div class="setting-card">
-          <h4>School Information</h4>
-          <p>View your school information.</p>
-          <button onclick="window.location.href = 'school-information.html'" class="manage-btn">
-            View School Information <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-
-        <div class="setting-card">
-          <h4>Push Notifications</h4>
-          <p id="pushNotificationStatus">Choose whether T-HUB notifications are enabled on this device.</p>
-          <button id="enablePushNotificationsBtn" type="button" class="manage-btn">
-            Enable on This Device <i class="fa-solid fa-bell"></i>
-          </button>
-        </div>
-
-        <div class="setting-card">
-          <h4>Log Out</h4>
-          <p>Sign out on this device and remove saved data for this site.</p>
-          <button id="clearBrowserDataBtn" type="button" class="manage-btn clear-browser-data-btn">
-            Log Out<i class="fa-solid fa-right-from-bracket"></i>
-          </button>
-        </div>
+        <a class="settings-link-row" href="my-profile.html">
+          <span class="settings-link-icon"><i class="fa-solid fa-user" aria-hidden="true"></i></span>
+          <h2>My Profile</h2>
+          <i class="fa-solid fa-chevron-right settings-link-arrow" aria-hidden="true"></i>
+        </a>
+        <button type="button" class="settings-link-row app-theme-toggle" id="appThemeToggle" aria-label="Switch to dark mode" aria-pressed="false" title="Switch to dark mode">
+          <span class="settings-link-icon"><i class="fa-solid fa-palette" aria-hidden="true"></i></span>
+          <h2>Appearance</h2>
+          <span class="settings-theme-mode">Dark mode</span>
+          <i class="fa-solid fa-chevron-right settings-link-arrow" aria-hidden="true"></i>
+        </button>
+        <a class="settings-link-row" href="school-information.html">
+          <span class="settings-link-icon"><i class="fa-solid fa-school" aria-hidden="true"></i></span>
+          <h2>School Information</h2>
+          <i class="fa-solid fa-chevron-right settings-link-arrow" aria-hidden="true"></i>
+        </a>
+        <button id="enablePushNotificationsBtn" type="button" class="settings-link-row">
+          <span class="settings-link-icon"><i class="fa-solid fa-bell" aria-hidden="true"></i></span>
+          <h2>Push Notifications</h2>
+          <i class="fa-solid fa-chevron-right settings-link-arrow" aria-hidden="true"></i>
+        </button>
+        <p class="settings-action-status" id="pushNotificationStatus" aria-live="polite">Choose whether T-HUB notifications are enabled on this device.</p>
+        <button id="clearBrowserDataBtn" type="button" class="settings-link-row settings-logout-row">
+          <span class="settings-link-icon"><i class="fa-solid fa-right-from-bracket" aria-hidden="true"></i></span>
+          <h2>Log Out</h2>
+          <i class="fa-solid fa-chevron-right settings-link-arrow" aria-hidden="true"></i>
+        </button>
       `;
 
       containerEl.innerHTML = allCardsHTML;
       window.applySavedAppTheme?.();
-
-      const settingIcons = new Map([
-        ["My Profile", "fa-user"],
-        ["Appearance", "fa-palette"],
-        ["School Information", "fa-school"],
-        ["Push Notifications", "fa-bell"],
-        ["Log Out & Clear Browser Data", "fa-right-from-bracket"],
-      ]);
-
-      containerEl.querySelectorAll(".setting-card h4").forEach((heading) => {
-        const iconName = settingIcons.get(heading.textContent.trim());
-        if (!iconName) return;
-
-        const icon = document.createElement("i");
-        icon.className = `fa-solid ${iconName}`;
-        icon.setAttribute("aria-hidden", "true");
-        heading.prepend(icon, " ");
-      });
 
       document
         .getElementById("clearBrowserDataBtn")
@@ -89,6 +60,46 @@ async function initSettingsPage() {
 
 document.addEventListener("DOMContentLoaded", initSettingsPage);
 
+async function loadSettingsSchoolHeader() {
+  try {
+    const client = window.supabaseClient || supabaseClient;
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError) throw authError;
+    if (!user) return;
+
+    const { data: profile, error: profileError } = await client
+      .from("profiles")
+      .select("school_id")
+      .eq("id", user.id)
+      .single();
+    if (profileError) throw profileError;
+    if (!profile?.school_id) return;
+
+    const { data: school, error: schoolError } = await client
+      .from("schools")
+      .select("school_name, school_motto, logo_url")
+      .eq("id", profile.school_id)
+      .maybeSingle();
+    if (schoolError) throw schoolError;
+    if (!school) return;
+
+    const name = document.getElementById("settingsSchoolName");
+    const motto = document.getElementById("settingsSchoolMotto");
+    const photo = document.getElementById("settingsSchoolPhoto");
+    if (name) name.textContent = school.school_name || "My School";
+    if (motto) {
+      motto.textContent = school.school_motto || "";
+      motto.hidden = !school.school_motto;
+    }
+    if (photo && school.logo_url) {
+      photo.src = school.logo_url;
+      photo.alt = `${school.school_name || "School"} photo`;
+    }
+  } catch (error) {
+    console.error("Could not load the school details for Settings:", error);
+  }
+}
+
 async function initPushNotificationSetup() {
   const button = document.getElementById("enablePushNotificationsBtn");
   const status = document.getElementById("pushNotificationStatus");
@@ -107,14 +118,12 @@ async function initPushNotificationSetup() {
   const renderState = () => {
     if (Notification.permission === "denied") {
       button.disabled = true;
-      button.innerHTML = `Blocked in Browser <i class="fa-solid fa-ban"></i>`;
+      button.setAttribute("aria-label", "Push notifications blocked in browser");
       status.textContent = "Notifications are blocked for this site. Change the site permission in your browser settings to enable them.";
       return;
     }
     button.disabled = false;
-    button.innerHTML = isEnabled
-      ? `Disable on This Device <i class="fa-solid fa-bell-slash"></i>`
-      : `Enable on This Device <i class="fa-solid fa-bell"></i>`;
+    button.setAttribute("aria-label", isEnabled ? "Disable push notifications on this device" : "Enable push notifications on this device");
     status.textContent = isEnabled
       ? "This device subscription is saved. grades, attendance and other updates will be delivered."
       : "Notifications are off on this device. You can enable them to receive updates whenever you are ready.";
@@ -145,7 +154,7 @@ async function initPushNotificationSetup() {
 
   button.addEventListener("click", async () => {
     button.disabled = true;
-    button.textContent = isEnabled ? "Turning off…" : "Setting up…";
+    button.setAttribute("aria-busy", "true");
     try {
       if (isEnabled) {
         const subscription = await registration.pushManager.getSubscription();
@@ -198,6 +207,7 @@ async function initPushNotificationSetup() {
       console.error("Could not set up push notifications:", error);
       status.textContent = error.message || "Could not update notifications on this device. Check your connection and try again.";
     } finally {
+      button.removeAttribute("aria-busy");
       button.disabled = false;
       renderState();
     }

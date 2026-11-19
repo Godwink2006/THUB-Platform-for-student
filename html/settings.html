@@ -38,11 +38,16 @@
   <body>
     <div class="academics-container">
       <main class="settings-main-content">
-        <header class="topbar">
-          <div>
-            <h1>Settings</h1>
-            <p>Configure settings.</p>
-          </div>
+        <header class="settings-school-header">
+          <img
+            class="settings-school-photo"
+            id="settingsSchoolPhoto"
+            src="/icons/school-avatar-default.svg"
+            alt="School photo"
+            onerror="this.onerror=null;this.src='/icons/school-avatar-default.svg'"
+          />
+          <h1 id="settingsSchoolName">My School</h1>
+          <p id="settingsSchoolMotto"></p>
         </header>
 
         <section class="setting-cards" id="settingsContainer"></section>
