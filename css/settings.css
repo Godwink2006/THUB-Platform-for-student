@@ -322,12 +322,59 @@ body.settings-modal-open {
   display: none;
 }
 
+.settings-refresh-button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 4px;
+  padding: 0 12px;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.settings-refresh-button:hover:not(:disabled) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.settings-refresh-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.settings-refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
 body.app-dark .settings-school-header h1 {
   color: #f8fafc;
 }
 
 body.app-dark .settings-school-header p {
   color: #cbd5e1;
+}
+
+body.app-dark .settings-refresh-button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .settings-refresh-button:hover:not(:disabled) {
+  border-color: #52525b;
+  background: #27272a;
+  color: #fff;
 }
 
 @media screen and (max-width: 600px) {

@@ -1,5 +1,11 @@
+const SETTINGS_CACHE_PAGE = "settings-school";
+const DEFAULT_SETTINGS_SCHOOL_PHOTO = "/icons/school-avatar-default.svg";
+
 async function initSettingsPage() {
   const containerEl = document.getElementById("settingsContainer");
+  document
+    .getElementById("refreshSettingsSchool")
+    ?.addEventListener("click", () => loadSettingsSchoolHeader({ refresh: true }));
   void loadSettingsSchoolHeader();
 
   try {
@@ -60,12 +66,48 @@ async function initSettingsPage() {
 
 document.addEventListener("DOMContentLoaded", initSettingsPage);
 
-async function loadSettingsSchoolHeader() {
+function renderSettingsSchoolHeader(school = {}) {
+  const name = document.getElementById("settingsSchoolName");
+  const motto = document.getElementById("settingsSchoolMotto");
+  const photo = document.getElementById("settingsSchoolPhoto");
+  if (name) name.textContent = school.schoolName || "My School";
+  if (motto) {
+    motto.textContent = school.schoolMotto || "";
+    motto.hidden = !school.schoolMotto;
+  }
+  if (photo) {
+    photo.src = school.logoUrl || DEFAULT_SETTINGS_SCHOOL_PHOTO;
+    photo.alt = `${school.schoolName || "School"} photo`;
+  }
+}
+
+function setSettingsRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshSettingsSchool");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+async function loadSettingsSchoolHeader(options = {}) {
+  const refresh = options.refresh === true;
+  if (refresh) setSettingsRefreshState(true);
+
   try {
-    const client = window.supabaseClient || supabaseClient;
+    const client = window.supabaseClient;
     const { data: { user }, error: authError } = await client.auth.getUser();
     if (authError) throw authError;
-    if (!user) return;
+    if (!user) {
+      window.studentPageCache?.clearLast(SETTINGS_CACHE_PAGE);
+      return;
+    }
+
+    const cached = window.studentPageCache?.read(SETTINGS_CACHE_PAGE, user.id);
+    if (cached?.data && !refresh) {
+      renderSettingsSchoolHeader(cached.data);
+      return;
+    }
 
     const { data: profile, error: profileError } = await client
       .from("profiles")
@@ -73,7 +115,10 @@ async function loadSettingsSchoolHeader() {
       .eq("id", user.id)
       .single();
     if (profileError) throw profileError;
-    if (!profile?.school_id) return;
+    if (!profile?.school_id) {
+      renderSettingsSchoolHeader();
+      return;
+    }
 
     const { data: school, error: schoolError } = await client
       .from("schools")
@@ -81,22 +126,18 @@ async function loadSettingsSchoolHeader() {
       .eq("id", profile.school_id)
       .maybeSingle();
     if (schoolError) throw schoolError;
-    if (!school) return;
-
-    const name = document.getElementById("settingsSchoolName");
-    const motto = document.getElementById("settingsSchoolMotto");
-    const photo = document.getElementById("settingsSchoolPhoto");
-    if (name) name.textContent = school.school_name || "My School";
-    if (motto) {
-      motto.textContent = school.school_motto || "";
-      motto.hidden = !school.school_motto;
-    }
-    if (photo && school.logo_url) {
-      photo.src = school.logo_url;
-      photo.alt = `${school.school_name || "School"} photo`;
-    }
+    const schoolData = {
+      schoolId: profile.school_id,
+      schoolName: school?.school_name || "My School",
+      schoolMotto: school?.school_motto || "",
+      logoUrl: school?.logo_url || "",
+    };
+    renderSettingsSchoolHeader(schoolData);
+    window.studentPageCache?.write(SETTINGS_CACHE_PAGE, user.id, schoolData);
   } catch (error) {
     console.error("Could not load the school details for Settings:", error);
+  } finally {
+    if (refresh) setSettingsRefreshState(false);
   }
 }
 
