@@ -326,7 +326,7 @@ html.announcement-delete-open body {
   gap: 7px;
   padding: 0 12px;
   border: 1px solid #dbe3ef;
-  border-radius: 10px;
+  border-radius: 20px;
   background: #fff;
   color: #334155;
   font: inherit;
@@ -338,17 +338,6 @@ html.announcement-delete-open body {
 
 .dashboard-refresh-button {
   margin-top: 2px;
-}
-
-.dashboard-refresh-button:hover:not(:disabled) {
-  border-color: #93c5fd;
-  background: #eff6ff;
-  color: #1d4ed8;
-}
-
-.dashboard-refresh-button:disabled {
-  opacity: 0.7;
-  cursor: wait;
 }
 
 .dashboard-profile-photo {
@@ -437,12 +426,6 @@ body.app-dark .dashboard-refresh-button {
   border-color: #3f3f46;
   background: #1c1c1c;
   color: #e4e4e7;
-}
-
-body.app-dark .dashboard-refresh-button:hover:not(:disabled) {
-  border-color: #0e7490;
-  background: #17252b;
-  color: #67e8f9;
 }
 
 body.app-dark .student-attendance-copy p {
