@@ -25,6 +25,10 @@
             onerror="this.onerror=null;this.src='/icons/student-avatar-default.svg'"
           />
           <h1 class="dashboard-profile-name" id="dashboardStudentName">Student</h1>
+          <button id="refreshDashboard" class="dashboard-refresh-button" type="button" aria-label="Refresh dashboard information">
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            <span>Refresh</span>
+          </button>
         </header>
 
         <section class="student-attendance-card" aria-labelledby="studentAttendanceHeading">
@@ -50,8 +54,9 @@
     <div id="toastContainer" class="toast-container"></div>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/supabase.js"></script>
-    <script src="/js/dashboard.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/student-page-cache.js"></script>
+    <script src="/js/dashboard.js"></script>
     <script src="/js/app-icons.js"></script>
   </body>
 </html>

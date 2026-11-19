@@ -1,8 +1,58 @@
-document.addEventListener("DOMContentLoaded", loadStudentDashboard);
-
 const DEFAULT_STUDENT_AVATAR = "/icons/student-avatar-default.svg";
+const DASHBOARD_CACHE_PAGE = "dashboard";
+let dashboardLoading = false;
 
-async function loadStudentDashboard() {
+document.addEventListener("DOMContentLoaded", initializeStudentDashboard);
+
+function renderDashboardProfile(profile = {}) {
+  const studentName = profile.fullName || "Student";
+  const nameElement = document.getElementById("dashboardStudentName");
+  const photoElement = document.getElementById("dashboardStudentPhoto");
+  if (nameElement) nameElement.textContent = studentName;
+  if (photoElement) {
+    photoElement.src = profile.photoUrl || DEFAULT_STUDENT_AVATAR;
+    photoElement.alt = `${studentName}'s profile photo`;
+  }
+}
+
+function renderDashboardData(data = {}) {
+  renderDashboardProfile(data.profile);
+  if (data.attendance) {
+    setStudentAttendanceSummary(data.attendance.rate, data.attendance.detail);
+  }
+  if (data.announcements) {
+    renderStudentAnnouncements(
+      document.getElementById("announcementPreviewContainer"),
+      data.announcements.items || [],
+      data.announcements.schoolLinked !== false,
+    );
+  }
+}
+
+function setDashboardRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshDashboard");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+async function initializeStudentDashboard() {
+  const cached = window.studentPageCache?.readLast(DASHBOARD_CACHE_PAGE);
+  if (cached?.data) renderDashboardData(cached.data);
+
+  document
+    .getElementById("refreshDashboard")
+    ?.addEventListener("click", () => loadStudentDashboard({ refresh: true }));
+  await loadStudentDashboard();
+}
+
+async function loadStudentDashboard(options = {}) {
+  if (dashboardLoading) return;
+  dashboardLoading = true;
+  const refresh = options.refresh === true;
+  if (refresh) setDashboardRefreshState(true);
   const preview = document.getElementById("announcementPreviewContainer");
 
   try {
@@ -13,6 +63,31 @@ async function loadStudentDashboard() {
     } = await client.auth.getUser();
     if (authError) throw authError;
     if (!user) return window.forceLogout?.();
+
+    let cached = window.studentPageCache?.read(DASHBOARD_CACHE_PAGE, user.id);
+    if (cached && cached.data.attendance && cached.data.announcements && !refresh) {
+      const { data: accessProfile, error: accessProfileError } = await client
+        .from("profiles")
+        .select("role, status, school_id")
+        .eq("id", user.id)
+        .single();
+      if (accessProfileError) throw accessProfileError;
+
+      if (
+        String(accessProfile?.role || "").trim().toLowerCase() !== "student" ||
+        String(accessProfile?.status || "").trim().toLowerCase() !== "active"
+      ) {
+        await client.auth.signOut();
+        window.location.replace("/index.html");
+        return;
+      }
+
+      if (String(cached.data.schoolId || "") === String(accessProfile.school_id || "")) {
+        renderDashboardData(cached.data);
+        return;
+      }
+      cached = null;
+    }
 
     const { data: profile, error: profileError } = await client
       .from("profiles")
@@ -30,29 +105,51 @@ async function loadStudentDashboard() {
       return;
     }
 
-    const studentName = profile.full_name || "Student";
-    const nameElement = document.getElementById("dashboardStudentName");
-    const photoElement = document.getElementById("dashboardStudentPhoto");
-    if (nameElement) nameElement.textContent = studentName;
-    if (photoElement) {
-      photoElement.src = profile.photo_url || DEFAULT_STUDENT_AVATAR;
-      photoElement.alt = `${studentName}'s profile photo`;
+    if (cached && String(cached.data.schoolId || "") !== String(profile.school_id || "")) {
+      cached = null;
     }
 
+    const dashboardData = {
+      profile: {
+        fullName: profile.full_name || "Student",
+        photoUrl: profile.photo_url || "",
+      },
+      schoolId: profile.school_id || "",
+      attendance: cached?.data?.attendance || null,
+      announcements: cached?.data?.announcements || null,
+    };
+    renderDashboardProfile(dashboardData.profile);
+
     const results = await Promise.allSettled([
-      loadStudentAnnouncements(client, profile.school_id, preview),
+      loadStudentAnnouncements(client, profile.school_id),
       loadStudentAttendanceSummary(client, user.id),
     ]);
-    if (results[0].status === "rejected") throw results[0].reason;
-    if (results[1].status === "rejected") {
-      console.error("Could not load student attendance summary:", results[1].reason);
-      setStudentAttendanceSummary(null, "Attendance could not be loaded.");
+    if (results[0].status === "fulfilled") {
+      dashboardData.announcements = results[0].value;
+    } else {
+      console.error("Could not load student announcements:", results[0].reason);
+      if (!dashboardData.announcements) {
+        renderAnnouncementsError(preview);
+      }
     }
+    if (results[1].status === "fulfilled") {
+      dashboardData.attendance = results[1].value;
+    } else {
+      console.error("Could not load student attendance summary:", results[1].reason);
+      if (!dashboardData.attendance) {
+        setStudentAttendanceSummary(null, "Attendance could not be loaded.");
+      }
+    }
+    renderDashboardData(dashboardData);
+    window.studentPageCache?.write(DASHBOARD_CACHE_PAGE, user.id, dashboardData);
   } catch (error) {
     console.error("Could not load the student dashboard:", error);
     if (preview) {
       preview.innerHTML = '<div class="announcement-item"><p>Announcements could not be loaded. Refresh the page and try again.</p></div>';
     }
+  } finally {
+    dashboardLoading = false;
+    if (refresh) setDashboardRefreshState(false);
   }
 }
 
@@ -87,7 +184,9 @@ async function loadStudentAttendanceSummary(client, studentId) {
     ? `${present} present out of ${validRecords.length} recorded ${validRecords.length === 1 ? "class" : "classes"}`
     : "No attendance records yet";
 
+  const attendance = { rate, detail };
   setStudentAttendanceSummary(rate, detail);
+  return attendance;
 }
 
 function setStudentAttendanceSummary(rate, detail) {
@@ -97,11 +196,9 @@ function setStudentAttendanceSummary(rate, detail) {
   if (detailElement) detailElement.textContent = detail;
 }
 
-async function loadStudentAnnouncements(client, schoolId, container) {
-  if (!container) return;
+async function loadStudentAnnouncements(client, schoolId) {
   if (!schoolId) {
-    container.innerHTML = '<div class="announcement-item"><p>Your student profile is not linked to a school.</p></div>';
-    return;
+    return { items: [], schoolLinked: false };
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -120,6 +217,16 @@ async function loadStudentAnnouncements(client, schoolId, container) {
     return audiences.some((audience) => ["all", "student", "students"].includes(audience));
   });
 
+  return { items: studentAnnouncements, schoolLinked: true };
+}
+
+function renderStudentAnnouncements(container, studentAnnouncements, schoolLinked = true) {
+  if (!container) return;
+  if (!schoolLinked) {
+    container.innerHTML = '<div class="announcement-item"><p>Your student profile is not linked to a school.</p></div>';
+    return;
+  }
+
   if (!studentAnnouncements.length) {
     container.innerHTML = '<div class="announcement-item empty-state"><h4>No announcements</h4><p>There are no current announcements for students.</p></div>';
     return;
@@ -136,6 +243,12 @@ async function loadStudentAnnouncements(client, schoolId, container) {
       <small>${expiry}</small>
     </article>`;
   }).join("");
+}
+
+function renderAnnouncementsError(container) {
+  if (container) {
+    container.innerHTML = '<div class="announcement-item"><p>Announcements could not be loaded. Refresh the page and try again.</p></div>';
+  }
 }
 
 function escapeStudentHtml(value) {

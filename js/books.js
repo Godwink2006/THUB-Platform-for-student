@@ -11,7 +11,6 @@ let booksGraduatedAccess = false;
 let booksCacheKey = "";
 let booksStudentId = "";
 let booksSchoolId = "";
-let booksEnrollmentStatus = "";
 let booksCacheRestored = false;
 
 function readBooksCache() {
@@ -36,7 +35,6 @@ function saveBooksCache() {
       savedAt: Date.now(),
       studentId: booksStudentId,
       schoolId: booksSchoolId,
-      enrollmentStatus: booksEnrollmentStatus,
       books: allCatalogBooks,
       hasMore: booksHasMore,
     }));
@@ -51,8 +49,6 @@ function saveBooksAccess() {
     localStorage.setItem(BOOKS_LAST_ACCESS_KEY, JSON.stringify({
       studentId: booksStudentId,
       schoolId: booksSchoolId,
-      enrollmentStatus: booksEnrollmentStatus,
-      graduated: booksGraduatedAccess,
       cacheKey: booksCacheKey,
     }));
   } catch (error) {
@@ -67,8 +63,7 @@ function restoreCachedBooksPage() {
 
     booksStudentId = savedAccess.studentId;
     booksSchoolId = savedAccess.schoolId || "";
-    booksEnrollmentStatus = savedAccess.enrollmentStatus || "";
-    // Stored enrollment is only a cache hint; initializeBooksPage revalidates it with Supabase.
+    // Cached catalog data never grants access; initializeBooksPage verifies enrollment with Supabase.
     booksGraduatedAccess = false;
     booksCacheKey = savedAccess.cacheKey || `${BOOKS_CACHE_PREFIX}${booksStudentId}:${booksSchoolId || "no-school"}`;
 
@@ -243,7 +238,6 @@ async function initializeBooksPage(options = {}) {
     const enrollmentStatuses = [...new Set((enrollments || [])
       .map((enrollment) => String(enrollment.enrollment_status || "").trim().toLowerCase())
       .filter(Boolean))];
-    booksEnrollmentStatus = enrollmentStatuses.join(", ") || "no enrollment record";
     booksGraduatedAccess = enrollmentStatuses.some((status) =>
       ["graduated", "transferred", "transfered"].includes(status),
     );
