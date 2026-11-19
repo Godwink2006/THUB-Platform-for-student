@@ -1,18 +1,7 @@
 async function initSettingsPage() {
-  const skeletonEl = document.getElementById("settingsSkeleton");
   const containerEl = document.getElementById("settingsContainer");
 
   try {
-    const {
-      data: { user },
-      error: userError,
-    } = await supabaseClient.auth.getUser();
-
-    if (userError || !user) {
-      console.warn("No authenticated user found.");
-      return;
-    }
-
     if (containerEl) {
       const allCardsHTML = `
         <div class="setting-card">
@@ -95,9 +84,6 @@ async function initSettingsPage() {
     }
   } catch (err) {
     console.error("Initialization error:", err);
-  } finally {
-    if (skeletonEl) skeletonEl.style.display = "none";
-    if (containerEl) containerEl.style.display = "grid";
   }
 }
 

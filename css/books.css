@@ -269,10 +269,6 @@ body {
   min-height: 100vh;
 }
 
-.students-main-content.books-access-checking {
-  background: #fff;
-}
-
 .student-modal-overlay {
   position: fixed;
   top: 0;
