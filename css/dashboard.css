@@ -677,6 +677,137 @@ html.announcement-delete-open body {
   }
 }
 
+/* Student dashboard header and personal attendance summary */
+.dashboard-main-content {
+  width: 100%;
+  margin-left: 0;
+  padding: 24px 20px 104px;
+}
+
+.dashboard-profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 4px auto 22px;
+  text-align: center;
+}
+
+.dashboard-profile-photo {
+  display: block;
+  width: 104px;
+  height: 104px;
+  border: 4px solid #fff;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e4e6eb;
+  box-shadow: 0 4px 18px rgba(15, 23, 42, 0.12);
+}
+
+.dashboard-profile-name {
+  color: #172033;
+  font-size: 22px;
+  font-weight: 650;
+  line-height: 1.3;
+}
+
+.student-attendance-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: min(100%, 720px);
+  margin: 0 auto 24px;
+  padding: 18px 20px;
+  border: 1px solid #e5e7eb;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.student-attendance-icon {
+  display: grid;
+  flex: 0 0 46px;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 15px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 19px;
+}
+
+.student-attendance-copy {
+  flex: 1;
+  min-width: 0;
+}
+
+.student-attendance-copy h2 {
+  margin: 0 0 4px;
+  color: #172033;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.student-attendance-copy p {
+  margin: 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.student-attendance-rate {
+  color: #2563eb;
+  font-size: 25px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.announcement-cards {
+  width: min(100%, 900px);
+  margin-right: auto;
+  margin-left: auto;
+  border-radius: 18px;
+}
+
+body.app-dark .dashboard-profile-name,
+body.app-dark .student-attendance-copy h2 {
+  color: #f8fafc;
+}
+
+body.app-dark .student-attendance-card {
+  border-color: #333;
+  background: #171717;
+}
+
+body.app-dark .student-attendance-copy p {
+  color: #cbd5e1;
+}
+
+@media screen and (max-width: 600px) {
+  .dashboard-main-content {
+    padding: 20px 16px 100px;
+  }
+
+  .dashboard-profile-photo {
+    width: 92px;
+    height: 92px;
+  }
+
+  .dashboard-profile-name {
+    font-size: 20px;
+  }
+
+  .student-attendance-card {
+    gap: 12px;
+    padding: 15px;
+  }
+
+  .student-attendance-rate {
+    font-size: 22px;
+  }
+}
+
 @media screen and (max-width: 768px) {
 
   .dashboard-cards {

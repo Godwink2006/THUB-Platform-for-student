@@ -14,7 +14,7 @@ async function loadStudentDashboard() {
 
     const { data: profile, error: profileError } = await client
       .from("profiles")
-      .select("full_name, role, status, school_id")
+      .select("full_name, photo_url, role, status, school_id")
       .eq("id", user.id)
       .single();
     if (profileError) throw profileError;
@@ -28,16 +28,71 @@ async function loadStudentDashboard() {
       return;
     }
 
-    const welcome = document.getElementById("welcomeUserText");
-    if (welcome) welcome.textContent = `Welcome back, ${profile.full_name || "Student"}`;
+    const studentName = profile.full_name || "Student";
+    const nameElement = document.getElementById("dashboardStudentName");
+    const photoElement = document.getElementById("dashboardStudentPhoto");
+    if (nameElement) nameElement.textContent = studentName;
+    if (photoElement) {
+      photoElement.src = profile.photo_url || window.DEFAULT_PROFILE_AVATAR;
+      photoElement.alt = `${studentName}'s profile photo`;
+    }
 
-    await loadStudentAnnouncements(client, profile.school_id, preview);
+    const results = await Promise.allSettled([
+      loadStudentAnnouncements(client, profile.school_id, preview),
+      loadStudentAttendanceSummary(client, user.id),
+    ]);
+    if (results[0].status === "rejected") throw results[0].reason;
+    if (results[1].status === "rejected") {
+      console.error("Could not load student attendance summary:", results[1].reason);
+      setStudentAttendanceSummary(null, "Attendance could not be loaded.");
+    }
   } catch (error) {
     console.error("Could not load the student dashboard:", error);
     if (preview) {
       preview.innerHTML = '<div class="announcement-item"><p>Announcements could not be loaded. Refresh the page and try again.</p></div>';
     }
   }
+}
+
+async function loadStudentAttendanceSummary(client, studentId) {
+  const { data: records, error: recordsError } = await client
+    .from("attendance_records")
+    .select("id, status, attendance_id")
+    .eq("student_id", studentId);
+  if (recordsError) throw recordsError;
+
+  const historyIndex = await window.getStudentTransferHistoryIndex?.(client);
+  const historicalIds = historyIndex?.recordIds?.attendance || new Set();
+  const currentRecords = (records || []).filter(
+    (record) => !historicalIds.has(String(record.id)),
+  );
+  const attendanceIds = [...new Set(currentRecords.map((record) => record.attendance_id).filter(Boolean))];
+
+  let validAttendanceIds = new Set();
+  if (attendanceIds.length) {
+    const { data: sessions, error: sessionsError } = await client
+      .from("attendance")
+      .select("id")
+      .in("id", attendanceIds);
+    if (sessionsError) throw sessionsError;
+    validAttendanceIds = new Set((sessions || []).map((session) => String(session.id)));
+  }
+
+  const validRecords = currentRecords.filter((record) => validAttendanceIds.has(String(record.attendance_id)));
+  const present = validRecords.filter((record) => String(record.status || "").toLowerCase() === "present").length;
+  const rate = validRecords.length ? Math.round((present / validRecords.length) * 100) : 0;
+  const detail = validRecords.length
+    ? `${present} present out of ${validRecords.length} recorded ${validRecords.length === 1 ? "class" : "classes"}`
+    : "No attendance records yet";
+
+  setStudentAttendanceSummary(rate, detail);
+}
+
+function setStudentAttendanceSummary(rate, detail) {
+  const rateElement = document.getElementById("studentAttendanceRate");
+  const detailElement = document.getElementById("studentAttendanceDetail");
+  if (rateElement) rateElement.textContent = rate === null ? "—" : `${rate}%`;
+  if (detailElement) detailElement.textContent = detail;
 }
 
 async function loadStudentAnnouncements(client, schoolId, container) {

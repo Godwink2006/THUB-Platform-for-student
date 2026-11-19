@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Student Dashboard | T-HUB</title>
+    <title>Dashboard | T-HUB</title>
     <link rel="stylesheet" href="/css/dashboard.css" />
     <link rel="stylesheet" href="/css/utils.css" />
     <link rel="stylesheet" href="/css/app-visuals.css" />
@@ -16,12 +16,25 @@
   <body>
     <div class="dashboard-container">
       <main class="dashboard-main-content">
-        <header class="topbar">
-          <div>
-            <h1>Student Dashboard</h1>
-            <p id="welcomeUserText">Welcome back...</p>
-          </div>
+        <header class="dashboard-profile-header">
+          <img
+            class="dashboard-profile-photo"
+            id="dashboardStudentPhoto"
+            src=""
+            alt="Student profile"
+            onerror="this.onerror=null;this.src=window.DEFAULT_PROFILE_AVATAR"
+          />
+          <h1 class="dashboard-profile-name" id="dashboardStudentName">Student</h1>
         </header>
+
+        <section class="student-attendance-card" aria-labelledby="studentAttendanceHeading">
+          <div class="student-attendance-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></div>
+          <div class="student-attendance-copy">
+            <h2 id="studentAttendanceHeading">Attendance</h2>
+            <p id="studentAttendanceDetail" aria-live="polite">Loading your attendance...</p>
+          </div>
+          <strong class="student-attendance-rate" id="studentAttendanceRate" aria-label="Attendance rate">—</strong>
+        </section>
 
         <section class="announcement-cards" aria-labelledby="announcementsHeading">
           <div class="card-header">
