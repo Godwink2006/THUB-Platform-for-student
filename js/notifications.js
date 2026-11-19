@@ -1,87 +1,121 @@
+const NOTIFICATIONS_CACHE_PAGE = "notifications";
+const NOTIFICATIONS_PAGE_SIZE = 20;
+
 document.addEventListener("DOMContentLoaded", async () => {
   const notificationList = document.getElementById("fullNotificationList");
   const markAllReadBtn = document.getElementById("markAllReadBtn");
+  const refreshBtn = document.getElementById("refreshNotifications");
   const tabs = document.querySelectorAll(".notif-tab");
 
   let currentFilter = "all";
   let notificationsData = [];
+  let loading = false;
 
   const {
     data: { session },
     error: sessionError,
   } = await window.supabaseClient.auth.getSession();
   if (sessionError || !session) {
-    window.location.href = "login.html";
+    window.location.href = "/index.html";
     return;
   }
   const userId = session.user.id;
 
-  async function fetchNotifications() {
+  function saveNotificationsCache() {
+    window.studentPageCache?.write(NOTIFICATIONS_CACHE_PAGE, userId, {
+      items: notificationsData,
+    });
+  }
+
+  function setRefreshState(isRefreshing) {
+    refreshBtn.disabled = isRefreshing;
+    refreshBtn.innerHTML = isRefreshing
+      ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing</span>'
+      : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+  }
+
+  async function fetchNotifications(options = {}) {
+    if (loading) return;
+    loading = true;
+    const showRefreshState = options.refresh === true;
+    if (showRefreshState) setRefreshState(true);
+    else if (!notificationsData.length) {
+      notificationList.innerHTML = '<div class="notifications-loading-state"><i class="fa-solid fa-spinner fa-spin notification-loading-icon" aria-hidden="true"></i>Loading notifications...</div>';
+    }
+
     try {
       const { data, error } = await window.supabaseClient
         .from("notifications")
         .select("*")
         .eq("user_id", userId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(NOTIFICATIONS_PAGE_SIZE);
 
       if (error) throw error;
       notificationsData = data || [];
+      saveNotificationsCache();
       renderNotifications();
     } catch (err) {
       console.error("Error fetching notifications:", err);
-      notificationList.innerHTML = `<div style="padding: 24px; text-align: center; color: #ef4444;">Failed to load notifications.</div>`;
+      if (!notificationsData.length) {
+        notificationList.innerHTML = '<div class="notifications-empty-state notifications-error-state">Failed to load notifications.</div>';
+      }
+      if (typeof showToast === "function") {
+        showToast(err.message || "Failed to refresh notifications.", "error");
+      }
+    } finally {
+      loading = false;
+      if (showRefreshState) setRefreshState(false);
     }
   }
 
   function renderNotifications() {
+    markAllReadBtn.disabled = !notificationsData.some((item) => !item.is_read);
     let filtered = notificationsData;
 
     if (currentFilter === "unread") {
-      filtered = notificationsData.filter((n) => !n.is_read);
+      filtered = notificationsData.filter((item) => !item.is_read);
     } else if (currentFilter === "read") {
-      filtered = notificationsData.filter((n) => n.is_read);
+      filtered = notificationsData.filter((item) => item.is_read);
     }
 
     if (filtered.length === 0) {
-      notificationList.innerHTML = `<div style="padding: 32px; text-align: center; color: #6b7280; font-size: 14px;">No notifications found.</div>`;
+      notificationList.innerHTML = '<div class="notifications-empty-state">No notifications found.</div>';
       return;
     }
 
     notificationList.innerHTML = filtered
-      .map(
-        (item) => `
-            <div data-id="${escapeHTML(item.id)}" class="notif-item" style="padding: 16px 20px; border-bottom: 1px solid #f3f4f6; background: ${item.is_read ? "white" : "#f8fafc"}; display: flex; justify-content: space-between; align-items: flex-start; transition: background 0.2s; cursor: pointer;">
-                <div style="display: flex; gap: 12px; align-items: flex-start;">
-                    <div style="margin-top: 4px; flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; background: ${item.is_read ? "transparent" : "#2563eb"};"></div>
-                    <div>
-                        <h4 style="margin: 0 0 4px 0; font-size: 14px; font-weight: ${item.is_read ? "500" : "600"}; color: #111827;">${escapeHTML(item.title || "")}</h4>
-                        <p style="margin: 0 0 6px 0; font-size: 13px; color: #4b5563; line-height: 1.4;">${escapeHTML(item.message || "")}</p>
-                        <span style="font-size: 11px; color: #9ca3af;">${new Date(item.created_at).toLocaleString()}</span>
-                    </div>
-                </div>
-                <div class="notification-item-actions">
-                    ${!item.is_read ? `<button class="mark-read-single notification-action-btn" data-id="${escapeHTML(item.id)}">Mark as read</button>` : ""}
-                    <button class="delete-notification notification-action-btn" data-id="${escapeHTML(item.id)}" aria-label="Delete notification" title="Delete notification">
-                      <i class="fa-solid fa-trash" aria-hidden="true"></i>
-                    </button>
-                </div>
+      .map((item) => `
+        <div data-id="${escapeHTML(item.id)}" class="notif-item ${item.is_read ? "is-read" : "is-unread"}">
+          <div class="notif-item-content">
+            <span class="notif-unread-dot" aria-hidden="true"></span>
+            <div class="notif-item-copy">
+              <h4>${escapeHTML(item.title || "")}</h4>
+              <p>${escapeHTML(item.message || "")}</p>
+              <span class="notif-item-time">${new Date(item.created_at).toLocaleString()}</span>
             </div>
-        `,
-      )
+          </div>
+          <div class="notification-item-actions">
+            ${!item.is_read ? `<button class="mark-read-single notification-action-btn" data-id="${escapeHTML(item.id)}">Mark as read</button>` : ""}
+            <button class="delete-notification notification-action-btn" data-id="${escapeHTML(item.id)}" aria-label="Delete notification" title="Delete notification">
+              <i class="fa-solid fa-trash" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+      `)
       .join("");
 
-    document.querySelectorAll(".mark-read-single").forEach((btn) => {
-      btn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        const id = btn.getAttribute("data-id");
-        await markAsRead(id);
+    notificationList.querySelectorAll(".mark-read-single").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        await markAsRead(button.dataset.id);
       });
     });
 
-    document.querySelectorAll(".delete-notification").forEach((btn) => {
-      btn.addEventListener("click", async (e) => {
-        e.stopPropagation();
-        await deleteNotification(btn.getAttribute("data-id"), btn);
+    notificationList.querySelectorAll(".delete-notification").forEach((button) => {
+      button.addEventListener("click", async (event) => {
+        event.stopPropagation();
+        await deleteNotification(button.dataset.id, button);
       });
     });
   }
@@ -103,11 +137,10 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!data) throw new Error("This notification could not be deleted.");
 
       notificationsData = notificationsData.filter((item) => item.id !== id);
+      saveNotificationsCache();
       renderNotifications();
       void window.refreshStudentNotificationBadge?.();
-      if (typeof showToast === "function") {
-        showToast("Notification deleted.", "success");
-      }
+      if (typeof showToast === "function") showToast("Notification deleted.", "success");
     } catch (err) {
       console.error("Error deleting notification:", err);
       button.disabled = false;
@@ -122,63 +155,66 @@ document.addEventListener("DOMContentLoaded", async () => {
       const { error } = await window.supabaseClient
         .from("notifications")
         .update({ is_read: true })
-        .eq("id", id);
+        .eq("id", id)
+        .eq("user_id", userId);
 
       if (error) throw error;
 
-      notificationsData = notificationsData.map((n) =>
-        n.id === id ? { ...n, is_read: true } : n,
+      notificationsData = notificationsData.map((item) =>
+        item.id === id ? { ...item, is_read: true } : item,
       );
+      saveNotificationsCache();
       renderNotifications();
       void window.refreshStudentNotificationBadge?.();
     } catch (err) {
       console.error("Error updating notification:", err);
+      if (typeof showToast === "function") showToast("Could not update notification.", "error");
     }
   }
 
   markAllReadBtn.addEventListener("click", async () => {
-    try {
-      const unreadIds = notificationsData
-        .filter((n) => !n.is_read)
-        .map((n) => n.id);
-      if (unreadIds.length === 0) return;
+    const unreadIds = notificationsData
+      .filter((item) => !item.is_read)
+      .map((item) => item.id);
+    if (!unreadIds.length) return;
+    markAllReadBtn.disabled = true;
 
+    try {
       const { error } = await window.supabaseClient
         .from("notifications")
         .update({ is_read: true })
-        .in("id", unreadIds);
+        .in("id", unreadIds)
+        .eq("user_id", userId);
 
       if (error) throw error;
 
-      notificationsData = notificationsData.map((n) => ({
-        ...n,
-        is_read: true,
-      }));
+      notificationsData = notificationsData.map((item) => ({ ...item, is_read: true }));
+      saveNotificationsCache();
       renderNotifications();
       void window.refreshStudentNotificationBadge?.();
     } catch (err) {
       console.error("Error marking all as read:", err);
+      markAllReadBtn.disabled = false;
+      if (typeof showToast === "function") showToast("Could not mark notifications as read.", "error");
     }
   });
 
+  refreshBtn.addEventListener("click", () => fetchNotifications({ refresh: true }));
+
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
-      tabs.forEach((t) => {
-        t.classList.remove("active");
-        t.style.background = "#f3f4f6";
-        t.style.color = "#4b5563";
-        t.style.fontWeight = "500";
-      });
-
+      tabs.forEach((otherTab) => otherTab.classList.remove("active"));
       tab.classList.add("active");
-      tab.style.background = "#eff6ff";
-      tab.style.color = "#2563eb";
-      tab.style.fontWeight = "600";
-
       currentFilter = tab.getAttribute("data-filter");
       renderNotifications();
     });
   });
 
-  fetchNotifications();
+  const cached = window.studentPageCache?.read(NOTIFICATIONS_CACHE_PAGE, userId);
+  if (Array.isArray(cached?.data?.items)) {
+    notificationsData = cached.data.items;
+    renderNotifications();
+  } else {
+    await fetchNotifications();
+  }
 });

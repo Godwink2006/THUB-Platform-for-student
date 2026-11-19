@@ -40,32 +40,28 @@
 
       <main class="main-content notifications-page">
         <div class="notifications-header">
-          <div>
-            <h1 class="page-title">Notifications</h1>
-            <p class="page-subtitle">Manage your school alerts and updates</p>
-
-            <button
-              onclick="window.location.href = 'dashboard.html'"
-              class="back-my-profiles-btn"
-            >
-              <i class="fa-solid fa-chevron-left"></i>
-              Back
-            </button>
-          </div>
-          <button id="markAllReadBtn" class="btn-primary-action">
-            Mark all as read
-          </button>
+          <h1 class="page-title">Notifications</h1>
         </div>
 
         <div class="notif-tabs-container">
-          <button class="notif-tab active" data-filter="all">All</button>
-          <button class="notif-tab" data-filter="unread">Unread</button>
-          <button class="notif-tab" data-filter="read">Read</button>
+          <div class="notif-filter-tabs" role="group" aria-label="Filter notifications">
+            <button class="notif-tab active" data-filter="all">All</button>
+            <button class="notif-tab" data-filter="unread">Unread</button>
+            <button class="notif-tab" data-filter="read">Read</button>
+          </div>
+          <button id="markAllReadBtn" class="btn-primary-action">
+            <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+            <span>Mark all read</span>
+          </button>
+          <button id="refreshNotifications" class="notifications-refresh-button" type="button" aria-label="Refresh notifications">
+            <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+            <span>Refresh</span>
+          </button>
         </div>
 
         <div id="fullNotificationList" class="notifications-card-list">
           <div class="notifications-loading-state">
-            <i class="fas fa-spinner fa-spin" style="color: grey"></i>
+            <i class="fa-solid fa-spinner fa-spin notification-loading-icon" aria-hidden="true"></i>
             Loading notifications...
           </div>
         </div>
@@ -75,6 +71,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/supabase.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/student-page-cache.js"></script>
     <script src="/js/notifications.js"></script>
       <script src="/js/app-icons.js"></script>
   </body>
