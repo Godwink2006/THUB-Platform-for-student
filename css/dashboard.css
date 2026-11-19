@@ -42,10 +42,9 @@ html.announcement-delete-open body {
 }
 
 .dashboard-main-content {
-  margin-left: 260px;
   width: calc(100% - 260px);
   min-height: 100vh;
-  padding: 10px;
+  padding: 20px;
 }
 
 .topbar {
@@ -89,6 +88,7 @@ html.announcement-delete-open body {
   padding: 20px;
   margin-bottom: 24px;
   box-shadow: 0 0 15px 1px rgba(0, 0, 0, 0.03);
+  border-radius: 10px;
 }
 
 .card-header {
@@ -143,20 +143,6 @@ html.announcement-delete-open body {
   line-height: 1.45;
 }
 
-.dashboard-chart-error:not([hidden]) {
-  margin: 0 0 12px;
-  color: #b91c1c;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.dashboard-activity-empty {
-  list-style: none;
-  padding: 14px;
-  color: #64748b;
-  text-align: center;
-}
-
 .announcement-item {
   display: flex;
   flex-direction: column;
@@ -164,6 +150,7 @@ html.announcement-delete-open body {
   padding: 14px 16px;
   border-bottom: 0.5px solid rgb(219, 215, 215);
   background: #f9fafb;
+  border-radius: 10px;
 }
 
 .announcement-item h4 {
@@ -187,11 +174,13 @@ html.announcement-delete-open body {
   background: #fff;
   color: #64748b;
   text-align: center;
+  border-radius: 10px;
 }
 
 .dashboard-announcement {
   background: #fff;
   border: 0.5px solid rgb(219, 215, 215);
+  border-radius: 10px;
 }
 
 .dashboard-announcement h4 {
@@ -236,193 +225,10 @@ html.announcement-delete-open body {
   font-size: 15px;
 }
 
-.announcement-delete-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  flex: 0 0 auto;
-  padding: 7px 10px;
-  border: 0.5px solid #fecaca;
-  background: #fff;
-  color: #b91c1c;
-  font: inherit;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.announcement-delete-btn:hover:not(:disabled) {
-  background: #fef2f2;
-}
-
-.announcement-delete-btn:disabled {
-  opacity: 0.65;
-  cursor: wait;
-}
-
-.announcement-confirm-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 1100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  background: rgba(15, 23, 42, 0.48);
-}
-
-.announcement-confirm-overlay[hidden] {
-  display: none;
-}
-
-.announcement-confirm-modal {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  column-gap: 12px;
-  row-gap: 18px;
-  width: min(100%, 390px);
-  padding: 20px;
-  border: 0.5px solid #e5e7eb;
-  background: #fff;
-  box-shadow: 0 18px 50px rgba(15, 23, 42, 0.22);
-  animation: modalShow 0.16s ease-out;
-}
-
-.announcement-confirm-icon {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 50%;
-  background: #fef2f2;
-  color: #dc2626;
-  font-size: 17px;
-}
-
-.announcement-confirm-copy h2 {
-  margin: 2px 0 5px;
-  color: #111827;
-  font-size: 16px;
-  font-weight: 700;
-}
-
-.announcement-confirm-copy p {
-  margin: 0;
-  color: #64748b;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.announcement-confirm-actions {
-  grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-}
-
-.announcement-confirm-actions button {
-  min-height: 36px;
-  padding: 7px 13px;
-  font: inherit;
-  font-size: 13px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.announcement-confirm-cancel {
-  border: 0.5px solid #d1d5db;
-  background: #fff;
-  color: #374151;
-}
-
-.announcement-confirm-delete {
-  border: 1px solid #dc2626;
-  background: #dc2626;
-  color: #fff;
-}
-
-.announcement-confirm-actions button:focus-visible {
-  outline: 0.5px solid rgba(37, 99, 235, 0.3);
-  outline-offset: 2px;
-}
-
 .announcement-empty {
   padding: 30px 20px;
   text-align: center;
   color: #9ca3af;
-}
-
-.form-group input,
-.form-group select,
-.form-group textarea {
-  width: 100%;
-  padding: 12px 15px;
-  border: 0.5px solid rgb(219, 215, 215);
-  outline: none;
-  font-size: 15px;
-}
-
-.form-group textarea {
-  resize: none;
-  min-height: 100px;
-}
-
-.announcement-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.45);
-
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.announcement-modal-content {
-  overflow: auto;
-  width: 100%;
-  max-width: 50%;
-  background: #ffff;
-  animation: modalShow 0.25s ease;
-  height: 100%;
-  max-height: 650px;
-}
-
-.announcement-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 25px;
-  border-bottom: 0.5px solid rgb(219, 215, 215);
-}
-
-.announcement-modal-header h2 {
-  font-size: 22px;
-}
-
-.announcement-modal-header button {
-  cursor: pointer;
-  border: 0.5px solid rgb(219, 215, 215);
-  background: #1f2937;
-  color: #f9fafb;
-  border: none;
-  height: 40px;
-  width: 40px;
-  font-size: 22px;
-}
-
-.announcement-modal-body {
-  padding: 25px;
-}
-
-.announcement-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 15px;
-  margin-top: 30px;
 }
 
 .dashboard-card p {
@@ -447,17 +253,6 @@ html.announcement-delete-open body {
   box-shadow: 0 0 15px 1px rgba(0, 0, 0, 0.03);
 }
 
-.dashboard-chart-card,
-.dashboard-activity-card {
-  background: #ffff;
-  border: 18px;
-  padding: 25px;
-  border: 0.5px solid rgb(219, 215, 215);
-  overflow-y: auto;
-  height: 470px;
-  box-shadow: 0 0 15px 1px rgba(0, 0, 0, 0.03);
-}
-
 .dashboard-card-header {
   display: flex;
   justify-content: space-between;
@@ -468,31 +263,6 @@ html.announcement-delete-open body {
 .dashboard-card-header h3 {
   color: #1f2937;
   font-size: 20px;
-}
-
-.dashboard-card-header button {
-  width: auto;
-  height: auto;
-  padding: 10px 18px;
-  background: #1d4ed8;
-  color: #fff;
-
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.dashboard-activity-list {
-  list-style: none;
-}
-
-.dashboard-activity-list li {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 15px 0;
-  border-bottom: 0.5px solid rgb(219, 215, 215);
-  color: #4b5563;
 }
 
 .dashboard-activity-list li:last-child {
@@ -532,156 +302,10 @@ html.announcement-delete-open body {
   position: relative;
 }
 
-.filter-btn {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  border: none;
-  background: #2563eb;
-  color: #ffff;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.filter-menu {
-  position: absolute;
-  top: 110%;
-  right: 0;
-  width: 220px;
-  background: #ffff;
-  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5);
-  overflow: hidden;
-  display: none;
-  z-index: 100;
-  animation: modalShow 0.25s ease;
-  border: 0.5px solid rgb(219, 215, 215);
-}
-
-.filter-menu a {
-  display: block;
-  padding: 14px 18px;
-  color: #374151;
-  text-decoration: none;
-  transition: 0.3s;
-  border-bottom: 0.5px solid rgb(219, 215, 215);
-}
-
-.filter-menu a:hover {
-  background: #dddfe3;
-}
-
-.date-modal-content {
-  max-width: 50%;
-  width: 100%;
-  background: #ffff;
-  overflow: hidden;
-  animation: modalShow 0.25s ease;
-}
-
-.date-modal {
-  position: fixed;
-  top: 0;
-  left: 0;
-
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.45);
-
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-.date-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 25px;
-  border: 0.5px solid rgb(219, 215, 215);
-}
-
-.date-modal-header h2 {
-  font-size: 22px;
-}
-
-.date-modal-header button {
-  cursor: pointer;
-  border: 0.5px solid rgb(219, 215, 215);
-  background: #1f2937;
-  color: #f9fafb;
-  border: none;
-  height: 40px;
-  width: 40px;
-  font-size: 22px;
-}
-
-.date-modal-body {
-  padding: 25px;
-}
-
-.form-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.form-group label {
-  margin-bottom: 8px;
-  font-size: 14px;
-  font-weight: 500;
-  color: #374151;
-}
-
-.form-group input {
-  width: 100%;
-  padding: 12px 15px;
-  border: 0.5px solid rgb(219, 215, 215);
-  outline: none;
-  font-size: 15px;
-}
-
-.date-modal-footer {
-  display: flex;
-  justify-content: space-between;
-  gap: 15px;
-  margin-top: 30px;
-}
-
-.save-btn {
-  padding: 12px 22px;
-  border: none;
-  background: #2563eb;
-  color: #ffff;
-  cursor: pointer;
-}
-
-.cancel-btn {
-  padding: 12px 22px;
-  border: none;
-  border: 0.5px solid rgb(219, 215, 215);
-  background: #1f2937;
-  color: #f9fafb;
-  cursor: pointer;
-}
-
-@keyframes modalShow {
-  from {
-    opacity: 0;
-    transform: scale(0.95);
-  }
-
-  to {
-    opacity: 1;
-    transform: scale(1);
-  }
-}
-
 /* Student dashboard header and personal attendance summary */
 .dashboard-main-content {
   width: 100%;
-  margin-left: 0;
-  padding: 24px 20px 104px;
+  padding: 20px;
 }
 
 .dashboard-profile-header {
@@ -716,11 +340,10 @@ html.announcement-delete-open body {
   display: flex;
   align-items: center;
   gap: 14px;
-  width: min(100%, 720px);
-  margin: 0 auto 24px;
-  padding: 18px 20px;
+  margin-bottom: 15px;
+  padding: 10px;
   border: 1px solid #e5e7eb;
-  border-radius: 18px;
+  border-radius: 10px;
   background: #fff;
   box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
 }
@@ -731,7 +354,7 @@ html.announcement-delete-open body {
   width: 46px;
   height: 46px;
   place-items: center;
-  border-radius: 15px;
+  border-radius: 10px;
   background: #eff6ff;
   color: #2563eb;
   font-size: 19px;
@@ -764,10 +387,7 @@ html.announcement-delete-open body {
 }
 
 .announcement-cards {
-  width: min(100%, 900px);
-  margin-right: auto;
-  margin-left: auto;
-  border-radius: 18px;
+  border-radius: 10px;
 }
 
 body.app-dark .dashboard-profile-name,
@@ -790,8 +410,8 @@ body.app-dark .student-attendance-copy p {
   }
 
   .dashboard-profile-photo {
-    width: 92px;
-    height: 92px;
+    width: 120px;
+    height: 120px;
   }
 
   .dashboard-profile-name {
@@ -858,6 +478,37 @@ body.app-dark .student-attendance-copy p {
     max-width: 95%;
     width: 100%;
   }
+
+  .announcement-cards {
+    max-width: 100%;
+    width: 100%;
+  }
+}
+
+.dashboard-announcement .dashboard-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dashboard-announcement .dashboard-card-header h4 {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.dashboard-announcement .announcement-status {
+  flex: 0 0 auto;
+  width: auto;
+  max-width: 100%;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 body.app-dark {
@@ -909,7 +560,7 @@ body.app-dark .filter-menu,
 body.app-dark .announcement-modal-content,
 body.app-dark .date-modal-content,
 body.app-dark .announcement-confirm-modal {
-  background: #111;
+  background: #222;
   border-color: #333;
   color: #fff;
 }
@@ -927,7 +578,7 @@ body.app-dark .announcement-item {
 
 body.app-dark .announcement-item[style],
 body.app-dark .announcement-item.empty-state {
-  background: #111 !important;
+  background: #222 !important;
   border-color: #333 !important;
   color: #fff !important;
 }

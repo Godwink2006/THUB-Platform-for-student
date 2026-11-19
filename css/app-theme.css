@@ -26,7 +26,7 @@
 }
 
 body.app-dark {
-  background: #000 !important;
+  background: #111 !important;
   color: #fff;
   color-scheme: dark;
 }
@@ -51,7 +51,7 @@ body.app-dark :is(
     .table-card,
     .table-container
   ) {
-  background-color: #111;
+  background-color: #222;
   border-color: #333;
   color: #fff;
 }
@@ -84,7 +84,7 @@ body.app-dark textarea::placeholder {
 }
 
 body.app-dark .app-theme-toggle {
-  background: #111;
+  background: #222;
   border-color: #333;
   color: #fff;
 }

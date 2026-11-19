@@ -1,5 +1,7 @@
 document.addEventListener("DOMContentLoaded", loadStudentDashboard);
 
+const DEFAULT_STUDENT_AVATAR = "/icons/student-avatar-default.svg";
+
 async function loadStudentDashboard() {
   const preview = document.getElementById("announcementPreviewContainer");
 
@@ -33,7 +35,7 @@ async function loadStudentDashboard() {
     const photoElement = document.getElementById("dashboardStudentPhoto");
     if (nameElement) nameElement.textContent = studentName;
     if (photoElement) {
-      photoElement.src = profile.photo_url || window.DEFAULT_PROFILE_AVATAR;
+      photoElement.src = profile.photo_url || DEFAULT_STUDENT_AVATAR;
       photoElement.alt = `${studentName}'s profile photo`;
     }
 
