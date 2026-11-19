@@ -198,3 +198,159 @@ body {
     border-radius: 0;
   }
 }
+
+/* Compact student header and academic navigation */
+.academics-main-content {
+  width: 100%;
+  margin-left: 0;
+  padding: 24px 20px 100px;
+}
+
+.academics-profile-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: 4px auto 24px;
+  text-align: center;
+}
+
+.academics-photo-stack {
+  position: relative;
+  width: 132px;
+  height: 116px;
+}
+
+.academics-student-photo,
+.academics-school-photo {
+  position: absolute;
+  display: block;
+  border: 3px solid #fff;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e4e6eb;
+  box-shadow: 0 5px 16px rgba(15, 23, 42, 0.14);
+}
+
+.academics-student-photo {
+  z-index: 1;
+  left: 0;
+  bottom: 0;
+  width: 96px;
+  height: 96px;
+}
+
+.academics-school-photo {
+  z-index: 2;
+  top: 0;
+  right: 0;
+  width: 70px;
+  height: 70px;
+}
+
+.academics-user-email {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.academic-links-card {
+  width: min(100%, 720px);
+  margin: 0 auto;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.06);
+}
+
+.academic-link-row {
+  display: flex;
+  min-height: 78px;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 20px;
+  color: #172033;
+  text-decoration: none;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.academic-link-row + .academic-link-row {
+  border-top: 1px solid #edf0f4;
+}
+
+.academic-link-row:hover,
+.academic-link-row:focus-visible {
+  background: #f8faff;
+  color: #2563eb;
+  outline: none;
+}
+
+.academic-link-icon {
+  display: flex !important;
+  flex: 0 0 48px;
+  width: 48px;
+  height: 48px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: #eff6ff;
+  color: #2563eb;
+  font-size: 20px;
+  line-height: 1;
+  text-align: center;
+}
+
+.academic-link-row h2 {
+  flex: 1;
+  margin: 0;
+  color: inherit;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.academic-link-arrow {
+  flex: 0 0 auto;
+  color: #94a3b8;
+  font-size: 16px;
+}
+
+body.app-dark .academics-user-email {
+  color: #cbd5e1;
+}
+
+body.app-dark .academic-links-card {
+  border-color: #333;
+  background: #171717;
+}
+
+body.app-dark .academic-link-row {
+  color: #f8fafc;
+}
+
+body.app-dark .academic-link-row + .academic-link-row {
+  border-color: #303030;
+}
+
+body.app-dark .academic-link-icon {
+  background: rgba(37, 99, 235, 0.18);
+  color: #93c5fd;
+}
+
+body.app-dark .academic-link-row:hover,
+body.app-dark .academic-link-row:focus-visible {
+  background: #202a3c;
+  color: #93c5fd;
+}
+
+@media screen and (max-width: 600px) {
+  .academics-main-content {
+    padding: 20px 16px 100px;
+  }
+
+  .academic-link-row {
+    min-height: 72px;
+    padding: 12px 14px;
+  }
+}

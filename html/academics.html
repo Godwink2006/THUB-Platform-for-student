@@ -38,40 +38,30 @@
   <body>
     <div class="academics-container">
       <main class="academics-main-content">
-        <header class="topbar">
-          <div>
-            <h1>Academics</h1>
-            <p>View your attendance, grades, fees, history and timetable.</p>
+        <header class="academics-profile-header">
+          <div class="academics-photo-stack" aria-label="Student and school photos">
+            <img
+              id="academicsSchoolPhoto"
+              class="academics-school-photo"
+              src="/icons/school-avatar-default.svg"
+              alt="School photo"
+              onerror="this.onerror=null;this.src='/icons/school-avatar-default.svg'"
+            />
+            <img
+              id="academicsStudentPhoto"
+              class="academics-student-photo"
+              src="/icons/student-avatar-default.svg"
+              alt="Student photo"
+              onerror="this.onerror=null;this.src='/icons/student-avatar-default.svg'"
+            />
           </div>
+          <p class="academics-user-email" id="academicsUserEmail"></p>
         </header>
 
-        <div id="academicsSkeleton" class="academic-cards">
-          <div class="academic-card skeleton">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-text"></div>
-            <div class="skeleton-btn"></div>
-          </div>
-          <div class="academic-card skeleton">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-text"></div>
-            <div class="skeleton-btn"></div>
-          </div>
-          <div class="academic-card skeleton">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-text"></div>
-            <div class="skeleton-btn"></div>
-          </div>
-          <div class="academic-card skeleton">
-            <div class="skeleton-title"></div>
-            <div class="skeleton-text"></div>
-            <div class="skeleton-btn"></div>
-          </div>
-        </div>
-
         <section
-          class="academic-cards"
+          class="academic-links-card"
           id="academicsContainer"
-          style="display: none"
+          aria-label="Academic records"
         ></section>
       </main>
     </div>
