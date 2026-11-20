@@ -170,9 +170,9 @@ async function initPushNotificationSetup() {
 
   const renderState = () => {
     if (Notification.permission === "denied") {
-      button.disabled = true;
-      button.setAttribute("aria-label", "Push notifications blocked in browser");
-      setStatus("Notifications are blocked for this site. Change the site permission in your browser settings to enable them.", "error");
+      button.disabled = false;
+      button.setAttribute("aria-label", "Try push notification setup again");
+      setStatus("Notifications are blocked by your browser. Allow them in this site’s browser settings, then tap Push Notifications to try again.", "error");
       return;
     }
     button.disabled = false;
@@ -213,6 +213,15 @@ async function initPushNotificationSetup() {
   renderState();
 
   button.addEventListener("click", async () => {
+    if (Notification.permission === "denied") {
+      statusOverride = {
+        message: "Notifications are still blocked by your browser. Allow them in this site’s browser settings, then tap Push Notifications to try again.",
+        state: "error",
+      };
+      renderState();
+      return;
+    }
+
     button.disabled = true;
     button.setAttribute("aria-busy", "true");
     statusOverride = null;
