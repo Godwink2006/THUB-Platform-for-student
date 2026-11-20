@@ -358,7 +358,7 @@ async function clearCurrentBrowserData() {
 
   dialog.dataset.busy = "true";
   confirmButton.disabled = true;
-  confirmButton.textContent = "Logging out and clearing data…";
+  confirmButton.textContent = "Logging out…";
   if (cancelButton) cancelButton.disabled = true;
 
   try {

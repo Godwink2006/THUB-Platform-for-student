@@ -392,6 +392,42 @@ body.app-dark .settings-refresh-button:hover:not(:disabled) {
   }
 }
 
+.clear-data-card {
+  width: min(100%, 360px);
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.clear-data-icon {
+  width: 38px;
+  height: 38px;
+  margin-bottom: 12px;
+  font-size: 14px;
+}
+
+.clear-data-card h2 {
+  margin-bottom: 6px;
+  font-size: 1.1rem;
+}
+
+.clear-data-card p {
+  font-size: 0.85rem;
+}
+
+.clear-data-actions {
+  flex-direction: row;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.clear-data-actions button {
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 40px;
+  padding: 8px 10px;
+  border-radius: 10px;
+}
+
 /* Student app settings use the same single-card, full-width rows as Academics. */
 .setting-cards {
   display: block;
