@@ -403,6 +403,7 @@ body {
   border: 0.5px solid rgb(219, 215, 215);
   margin-bottom: 0.75rem;
   padding: 1rem;
+  border-radius: 20px;
 }
 
 .book-history-entry p {
