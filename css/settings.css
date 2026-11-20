@@ -505,7 +505,7 @@ body.app-dark .settings-refresh-button:hover:not(:disabled) {
   padding: 0 20px 16px 84px;
   color: #64748b;
   font-size: 12px;
-  line-height: 0;
+  line-height: 1.45;
 }
 
 .settings-action-status.is-success {
