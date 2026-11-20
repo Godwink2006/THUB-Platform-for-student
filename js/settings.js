@@ -261,14 +261,47 @@ async function initPushNotificationSetup() {
           const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
           if (userError) throw userError;
           if (!user) throw new Error("Sign in before enabling push notifications.");
-          const subscriptionData = subscription.toJSON();
-          const { error } = await supabaseClient.from("push_subscriptions").upsert({
-            user_id: user.id,
-            endpoint: subscription.endpoint,
-            p256dh: subscriptionData.keys?.p256dh,
-            auth_key: subscriptionData.keys?.auth,
-          }, { onConflict: "endpoint" });
-          if (error) throw error;
+
+          const saveSubscription = async (activeSubscription) => {
+            const subscriptionData = activeSubscription.toJSON();
+            return supabaseClient.from("push_subscriptions").upsert({
+              user_id: user.id,
+              endpoint: activeSubscription.endpoint,
+              p256dh: subscriptionData.keys?.p256dh,
+              auth_key: subscriptionData.keys?.auth,
+            }, { onConflict: "endpoint" });
+          };
+
+          let { error } = await saveSubscription(subscription);
+          if (error?.code === "42501" && /row-level security/i.test(error.message || "")) {
+            const previousEndpoint = subscription.endpoint;
+            statusOverride = {
+              message: "Replacing an old push subscription for this device…",
+              state: "pending",
+            };
+            setStatus(statusOverride.message, statusOverride.state);
+
+            const unsubscribed = await subscription.unsubscribe();
+            if (!unsubscribed) {
+              throw new Error("This device’s old push subscription could not be replaced. Clear this site’s browser data, then try again.");
+            }
+
+            subscription = await registration.pushManager.subscribe({
+              userVisibleOnly: true,
+              applicationServerKey: base64UrlToUint8Array(window.T_HUB_VAPID_PUBLIC_KEY),
+            });
+            if (subscription.endpoint === previousEndpoint) {
+              throw new Error("This device kept its old push subscription. Clear this site’s browser data, then try again.");
+            }
+
+            ({ error } = await saveSubscription(subscription));
+            if (error) {
+              throw new Error("The old push subscription was replaced, but this device could not be registered. Please try again.");
+            }
+          } else if (error) {
+            throw error;
+          }
+
           isEnabled = true;
           statusOverride = { message: "Push notifications are on for this device.", state: "success" };
         } else {
