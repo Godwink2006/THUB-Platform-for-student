@@ -110,7 +110,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } finally {
       loading = false;
       nextBtn.disabled = false;
-      nextBtn.innerHTML = 'Next <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>';
+      nextBtn.innerHTML = 'Next';
       nextBtn.hidden = !hasMoreNotifications;
     }
   }
