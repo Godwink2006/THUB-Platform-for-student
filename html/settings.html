@@ -54,6 +54,39 @@
           </button>
         </header>
 
+        <script>
+          (() => {
+            try {
+              const pageKey = "thubStudentPageCache:v1:settings-school";
+              const cachedUserId = sessionStorage.getItem(`${pageKey}:last-user`);
+              if (!cachedUserId) return;
+              const hasMatchingSession = Object.keys(localStorage).some((key) => {
+                if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
+                try {
+                  const session = JSON.parse(localStorage.getItem(key) || "null");
+                  return session?.user?.id === cachedUserId;
+                } catch {
+                  return false;
+                }
+              });
+              if (!hasMatchingSession) return;
+              const cached = JSON.parse(sessionStorage.getItem(`${pageKey}:${cachedUserId}`) || "null");
+              const school = cached?.userId === cachedUserId ? cached.data : null;
+              if (!school) return;
+              document.getElementById("settingsSchoolName").textContent = school.schoolName || "My School";
+              const motto = document.getElementById("settingsSchoolMotto");
+              motto.textContent = school.schoolMotto || "";
+              motto.hidden = !school.schoolMotto;
+              const photo = document.getElementById("settingsSchoolPhoto");
+              photo.src = school.logoUrl || "/icons/school-avatar-default.svg";
+              photo.alt = `${school.schoolName || "School"} photo`;
+              photo.dataset.hydrated = "true";
+            } catch {
+              // The page continues with its default school image if cache data is unavailable.
+            }
+          })();
+        </script>
+
         <section class="setting-cards" id="settingsContainer"></section>
       </main>
     </div>

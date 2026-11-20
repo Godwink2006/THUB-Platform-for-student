@@ -304,6 +304,10 @@ body.settings-modal-open {
   box-shadow: 0 5px 18px rgba(15, 23, 42, 0.14);
 }
 
+.settings-school-photo:not([data-hydrated="true"]) {
+  visibility: hidden;
+}
+
 .settings-school-header h1 {
   color: #172033;
   font-size: 22px;
@@ -497,15 +501,23 @@ body.app-dark .settings-refresh-button:hover:not(:disabled) {
 }
 
 .settings-action-status {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  margin: 0;
+  padding: 0 20px 16px 84px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 0;
+}
+
+.settings-action-status.is-success {
+  color: #15803d;
+}
+
+.settings-action-status.is-pending {
+  color: #2563eb;
+}
+
+.settings-action-status.is-error {
+  color: #b91c1c;
 }
 
 .settings-logout-row .settings-link-icon {
@@ -540,6 +552,22 @@ body.app-dark .settings-link-icon {
 body.app-dark .settings-theme-mode,
 body.app-dark .settings-link-arrow {
   color: #a1a1aa;
+}
+
+body.app-dark .settings-action-status {
+  color: #a1a1aa;
+}
+
+body.app-dark .settings-action-status.is-success {
+  color: #86efac;
+}
+
+body.app-dark .settings-action-status.is-pending {
+  color: #93c5fd;
+}
+
+body.app-dark .settings-action-status.is-error {
+  color: #fca5a5;
 }
 
 body.app-dark .settings-link-row:hover,
@@ -583,5 +611,9 @@ body.app-dark .settings-logout-row .settings-link-icon {
 
   .settings-link-row h2 {
     font-size: 16px;
+  }
+
+  .settings-action-status {
+    padding: 0 14px 14px 70px;
   }
 }

@@ -410,6 +410,45 @@ body.app-dark .delete-notification:hover:not(:disabled) {
   transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
 }
 
+.notifications-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 4px;
+}
+
+.notifications-next-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 18px;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+
+.notifications-next-button[hidden] {
+  display: none;
+}
+
+.notifications-next-button:hover:not(:disabled) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.notifications-next-button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 #markAllReadBtn {
   flex: 0 0 auto;
   min-height: 40px;
@@ -438,6 +477,18 @@ body.app-dark .notifications-refresh-button {
   border-color: #3f3f46;
   background: #1c1c1c;
   color: #e4e4e7;
+}
+
+body.app-dark .notifications-next-button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .notifications-next-button:hover:not(:disabled) {
+  border-color: #52525b;
+  background: #27272a;
+  color: #fff;
 }
 
 @media screen and (max-width: 600px) {

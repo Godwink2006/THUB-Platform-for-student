@@ -78,6 +78,7 @@ function renderSettingsSchoolHeader(school = {}) {
   if (photo) {
     photo.src = school.logoUrl || DEFAULT_SETTINGS_SCHOOL_PHOTO;
     photo.alt = `${school.schoolName || "School"} photo`;
+    photo.dataset.hydrated = "true";
   }
 }
 
@@ -100,6 +101,7 @@ async function loadSettingsSchoolHeader(options = {}) {
     if (authError) throw authError;
     if (!user) {
       window.studentPageCache?.clearLast(SETTINGS_CACHE_PAGE);
+      renderSettingsSchoolHeader();
       return;
     }
 
@@ -136,6 +138,9 @@ async function loadSettingsSchoolHeader(options = {}) {
     window.studentPageCache?.write(SETTINGS_CACHE_PAGE, user.id, schoolData);
   } catch (error) {
     console.error("Could not load the school details for Settings:", error);
+    if (!document.getElementById("settingsSchoolPhoto")?.dataset.hydrated) {
+      renderSettingsSchoolHeader();
+    }
   } finally {
     if (refresh) setSettingsRefreshState(false);
   }
@@ -146,28 +151,39 @@ async function initPushNotificationSetup() {
   const status = document.getElementById("pushNotificationStatus");
   if (!button || !status) return;
 
+  const setStatus = (message, state = "") => {
+    status.textContent = message;
+    status.classList.remove("is-success", "is-pending", "is-error");
+    if (state) status.classList.add(`is-${state}`);
+  };
+
   const supported = "serviceWorker" in navigator && "Notification" in window && "PushManager" in window;
   if (!supported || !window.isSecureContext) {
     button.disabled = true;
-    status.textContent = "Push notifications need a supported browser and a secure HTTPS connection.";
+    setStatus("Push notifications need a supported browser and a secure HTTPS connection.", "error");
     return;
   }
 
   let registration;
   let isEnabled = false;
+  let statusOverride = null;
 
   const renderState = () => {
     if (Notification.permission === "denied") {
       button.disabled = true;
       button.setAttribute("aria-label", "Push notifications blocked in browser");
-      status.textContent = "Notifications are blocked for this site. Change the site permission in your browser settings to enable them.";
+      setStatus("Notifications are blocked for this site. Change the site permission in your browser settings to enable them.", "error");
       return;
     }
     button.disabled = false;
     button.setAttribute("aria-label", isEnabled ? "Disable push notifications on this device" : "Enable push notifications on this device");
-    status.textContent = isEnabled
-      ? "This device subscription is saved. grades, attendance and other updates will be delivered."
-      : "Notifications are off on this device. You can enable them to receive updates whenever you are ready.";
+    if (statusOverride) {
+      setStatus(statusOverride.message, statusOverride.state);
+    } else {
+      setStatus(isEnabled
+        ? "Notifications are on for this device. Updates will arrive here."
+        : "Notifications are off on this device.", isEnabled ? "success" : "");
+    }
   };
 
   try {
@@ -189,13 +205,18 @@ async function initPushNotificationSetup() {
     }
   } catch (error) {
     console.error("Could not check push notification setup:", error);
-    status.textContent = "Could not check this device’s notification setup. Try again.";
+    statusOverride = {
+      message: "Could not check this device’s notification setup. Try again.",
+      state: "error",
+    };
   }
   renderState();
 
   button.addEventListener("click", async () => {
     button.disabled = true;
     button.setAttribute("aria-busy", "true");
+    statusOverride = null;
+    setStatus(isEnabled ? "Turning notifications off…" : "Setting up push notifications…", "pending");
     try {
       if (isEnabled) {
         const subscription = await registration.pushManager.getSubscription();
@@ -213,6 +234,7 @@ async function initPushNotificationSetup() {
           await subscription.unsubscribe();
         }
         isEnabled = false;
+        statusOverride = { message: "Push notifications are off on this device.", state: "success" };
       } else {
         let permission = Notification.permission;
         if (permission === "default") {
@@ -239,14 +261,17 @@ async function initPushNotificationSetup() {
           }, { onConflict: "endpoint" });
           if (error) throw error;
           isEnabled = true;
-          status.textContent = "This device is registered.";
+          statusOverride = { message: "Push notifications are on for this device.", state: "success" };
         } else {
-          status.textContent = "Notifications were not enabled.";
+          statusOverride = { message: "Permission was not granted. Notifications are still off.", state: "error" };
         }
       }
     } catch (error) {
       console.error("Could not set up push notifications:", error);
-      status.textContent = error.message || "Could not update notifications on this device. Check your connection and try again.";
+      statusOverride = {
+        message: error.message || "Could not update notifications on this device. Check your connection and try again.",
+        state: "error",
+      };
     } finally {
       button.removeAttribute("aria-busy");
       button.disabled = false;

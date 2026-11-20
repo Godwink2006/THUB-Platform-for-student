@@ -5,11 +5,14 @@ document.addEventListener("DOMContentLoaded", async () => {
   const notificationList = document.getElementById("fullNotificationList");
   const markAllReadBtn = document.getElementById("markAllReadBtn");
   const refreshBtn = document.getElementById("refreshNotifications");
+  const nextBtn = document.getElementById("nextNotifications");
   const tabs = document.querySelectorAll(".notif-tab");
 
   let currentFilter = "all";
   let notificationsData = [];
   let loading = false;
+  let nextOffset = 0;
+  let hasMoreNotifications = false;
 
   const {
     data: { session },
@@ -24,6 +27,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   function saveNotificationsCache() {
     window.studentPageCache?.write(NOTIFICATIONS_CACHE_PAGE, userId, {
       items: notificationsData,
+      nextOffset,
+      hasMore: hasMoreNotifications,
     });
   }
 
@@ -49,10 +54,13 @@ document.addEventListener("DOMContentLoaded", async () => {
         .select("*")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
-        .limit(NOTIFICATIONS_PAGE_SIZE);
+        .range(0, NOTIFICATIONS_PAGE_SIZE);
 
       if (error) throw error;
-      notificationsData = data || [];
+      const firstPage = data || [];
+      notificationsData = firstPage.slice(0, NOTIFICATIONS_PAGE_SIZE);
+      nextOffset = notificationsData.length;
+      hasMoreNotifications = firstPage.length > NOTIFICATIONS_PAGE_SIZE;
       saveNotificationsCache();
       renderNotifications();
     } catch (err) {
@@ -69,8 +77,47 @@ document.addEventListener("DOMContentLoaded", async () => {
     }
   }
 
+  async function loadNextNotifications() {
+    if (loading || !hasMoreNotifications) return;
+    loading = true;
+    nextBtn.disabled = true;
+    nextBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Loading...';
+
+    try {
+      const { data, error } = await window.supabaseClient
+        .from("notifications")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .range(nextOffset, nextOffset + NOTIFICATIONS_PAGE_SIZE);
+
+      if (error) throw error;
+      const page = data || [];
+      const pageItems = page.slice(0, NOTIFICATIONS_PAGE_SIZE);
+      const loadedIds = new Set(notificationsData.map((item) => String(item.id)));
+      notificationsData = notificationsData.concat(
+        pageItems.filter((item) => !loadedIds.has(String(item.id))),
+      );
+      nextOffset += pageItems.length;
+      hasMoreNotifications = page.length > NOTIFICATIONS_PAGE_SIZE;
+      saveNotificationsCache();
+      renderNotifications();
+    } catch (err) {
+      console.error("Error loading the next notifications:", err);
+      if (typeof showToast === "function") {
+        showToast(err.message || "Could not load the next notifications.", "error");
+      }
+    } finally {
+      loading = false;
+      nextBtn.disabled = false;
+      nextBtn.innerHTML = 'Next <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>';
+      nextBtn.hidden = !hasMoreNotifications;
+    }
+  }
+
   function renderNotifications() {
     markAllReadBtn.disabled = !notificationsData.some((item) => !item.is_read);
+    nextBtn.hidden = !hasMoreNotifications;
     let filtered = notificationsData;
 
     if (currentFilter === "unread") {
@@ -137,6 +184,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (!data) throw new Error("This notification could not be deleted.");
 
       notificationsData = notificationsData.filter((item) => item.id !== id);
+      nextOffset = Math.max(0, nextOffset - 1);
       saveNotificationsCache();
       renderNotifications();
       void window.refreshStudentNotificationBadge?.();
@@ -200,6 +248,7 @@ document.addEventListener("DOMContentLoaded", async () => {
   });
 
   refreshBtn.addEventListener("click", () => fetchNotifications({ refresh: true }));
+  nextBtn.addEventListener("click", loadNextNotifications);
 
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -213,7 +262,12 @@ document.addEventListener("DOMContentLoaded", async () => {
   const cached = window.studentPageCache?.read(NOTIFICATIONS_CACHE_PAGE, userId);
   if (Array.isArray(cached?.data?.items)) {
     notificationsData = cached.data.items;
+    nextOffset = Number.isInteger(cached.data.nextOffset)
+      ? cached.data.nextOffset
+      : notificationsData.length;
+    hasMoreNotifications = cached.data.hasMore === true;
     renderNotifications();
+    if (typeof cached.data.hasMore !== "boolean") void fetchNotifications();
   } else {
     await fetchNotifications();
   }
