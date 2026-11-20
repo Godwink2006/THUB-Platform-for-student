@@ -273,7 +273,13 @@ async function initPushNotificationSetup() {
           };
 
           let { error } = await saveSubscription(subscription);
-          if (error?.code === "42501" && /row-level security/i.test(error.message || "")) {
+          if (isPushSubscriptionRlsError(error)) {
+            if (await isGraduatedOrTransferredStudent(user.id)) {
+              throw new Error(
+                "Push notifications can’t be enabled because your student enrollment is marked as graduated or transferred.",
+              );
+            }
+
             const previousEndpoint = subscription.endpoint;
             statusOverride = {
               message: "Replacing an old push subscription for this device…",
@@ -327,6 +333,27 @@ function base64UrlToUint8Array(value) {
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(base64);
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
+}
+
+async function isGraduatedOrTransferredStudent(userId) {
+  const { data, error } = await supabaseClient
+    .from("student_enrollments")
+    .select("enrollment_status")
+    .eq("student_id", userId);
+  if (error) {
+    console.warn("Could not check push notification enrollment eligibility:", error.message);
+    return false;
+  }
+
+  return (data || []).some((enrollment) =>
+    ["graduated", "transferred", "transfered"].includes(
+      String(enrollment.enrollment_status || "").trim().toLowerCase(),
+    )
+  );
+}
+
+function isPushSubscriptionRlsError(error) {
+  return error?.code === "42501" && /row-level security/i.test(error.message || "");
 }
 
 let clearDataDialogTrigger = null;
