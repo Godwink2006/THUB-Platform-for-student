@@ -11,6 +11,13 @@ async function redirectIfAlreadySignedIn() {
 
   try {
     const {
+      data: { session },
+      error: sessionError,
+    } = await client.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!session?.user) return;
+
+    const {
       data: { user },
       error: userError,
     } = await client.auth.getUser();
