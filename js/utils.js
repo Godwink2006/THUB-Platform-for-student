@@ -866,6 +866,46 @@ function setAssessmentPeriodOptions(
   }
 }
 
+function buildUniqueFilterOptions(values) {
+  const groups = new Map();
+  for (const [rawId, rawLabel] of values || []) {
+    if (rawId === null || rawId === undefined || String(rawId) === "") continue;
+    const label = String(rawLabel || "Option").trim().replace(/\s+/g, " ");
+    const labelKey = label.toLocaleLowerCase();
+    const group = groups.get(labelKey) || { label, ids: [] };
+    const id = String(rawId);
+    if (!group.ids.includes(id)) group.ids.push(id);
+    groups.set(labelKey, group);
+  }
+
+  return [...groups.values()].map(({ label, ids }) => {
+    const sortedIds = ids.sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    return {
+      label,
+      ids: sortedIds,
+      value: sortedIds.length === 1 ? sortedIds[0] : JSON.stringify(sortedIds),
+    };
+  });
+}
+
+function filterSelectionMatches(selectedValue, candidateId, allValues = ["", "all"]) {
+  if (allValues.includes(String(selectedValue ?? ""))) return true;
+  const selected = String(selectedValue);
+  let ids = [selected];
+  if (selected.startsWith("[")) {
+    try {
+      const parsed = JSON.parse(selected);
+      if (Array.isArray(parsed)) ids = parsed.map(String);
+    } catch {
+      // Treat an invalid grouped value as a regular option value.
+    }
+  }
+  return ids.includes(String(candidateId ?? ""));
+}
+
+window.buildUniqueFilterOptions = buildUniqueFilterOptions;
+window.filterSelectionMatches = filterSelectionMatches;
+
 function parseAssessmentPeriodIds(value) {
   if (!value) return [];
   try {

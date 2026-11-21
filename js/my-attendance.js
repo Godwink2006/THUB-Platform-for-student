@@ -238,6 +238,7 @@ async function fetchStudentAttendanceRecords(userId, historyIndex, client) {
 function fillAttendanceFilter(select, placeholder, values) {
   if (!select) return;
   const selectedValue = select.value;
+  const options = window.buildUniqueFilterOptions?.(values) || [];
 
   select.replaceChildren();
   const placeholderOption = document.createElement("option");
@@ -245,18 +246,18 @@ function fillAttendanceFilter(select, placeholder, values) {
   placeholderOption.textContent = placeholder;
   select.appendChild(placeholderOption);
 
-  [...values.entries()]
-    .sort((a, b) => String(a[1]).localeCompare(String(b[1]), undefined, {
+  options
+    .sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, {
       numeric: true,
       sensitivity: "base",
     }))
-    .forEach(([id, label]) => {
+    .forEach(({ value, label }) => {
       const option = document.createElement("option");
-      option.value = id;
+      option.value = value;
       option.textContent = label;
       select.appendChild(option);
     });
-  if (selectedValue && values.has(selectedValue)) select.value = selectedValue;
+  if (options.some((option) => option.value === selectedValue)) select.value = selectedValue;
 }
 
 function populateDropdownFilters(records) {
@@ -420,10 +421,10 @@ function applyFiltersAndRender() {
     const attendance = record.attendance;
     const status = String(record.status || "").toLowerCase();
     return (
-      (selectedYear === "all" || String(attendance.academic_year_id) === selectedYear) &&
+      (window.filterSelectionMatches?.(selectedYear, attendance.academic_year_id) ?? (selectedYear === "all" || String(attendance.academic_year_id) === selectedYear)) &&
       (selectedSemester === "all" || getSemesterNumber(attendance.terms?.name) === Number(selectedSemester)) &&
-      (selectedClass === "all" || String(attendance.class_id) === selectedClass) &&
-      (selectedSubject === "all" || String(attendance.subject_id) === selectedSubject) &&
+      (window.filterSelectionMatches?.(selectedClass, attendance.class_id) ?? (selectedClass === "all" || String(attendance.class_id) === selectedClass)) &&
+      (window.filterSelectionMatches?.(selectedSubject, attendance.subject_id) ?? (selectedSubject === "all" || String(attendance.subject_id) === selectedSubject)) &&
       (selectedPeriod === "all" || selectedAssessmentIds.includes(String(attendance.assessment_id || attendance.assessments?.id))) &&
       (selectedStatus === "all" || status === selectedStatus.toLowerCase())
     );

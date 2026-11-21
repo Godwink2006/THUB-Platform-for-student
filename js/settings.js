@@ -1,6 +1,35 @@
 const SETTINGS_CACHE_PAGE = "settings-school";
 const DEFAULT_SETTINGS_SCHOOL_PHOTO = "/icons/school-avatar-default.svg";
 
+function getPushNotificationErrorMessage(error, fallback) {
+  const message = window.getSupabaseErrorMessage?.(error, fallback) || fallback;
+  const code = String(error?.code || "").toUpperCase();
+  const databaseMessage = String(error?.message || "");
+
+  if (
+    code === "42501" &&
+    /Block_graduated_or_transfer_student/i.test(databaseMessage)
+  ) {
+    return "Push notifications are blocked because the database marks this enrollment as graduated or transferred. Contact your school administrator if this is a mistake.";
+  }
+
+  if (
+    code === "42501" &&
+    /active_user_guide|active_user_guard/i.test(databaseMessage)
+  ) {
+    return "Push notifications are blocked because this account is not active. Contact your school administrator.";
+  }
+
+  if (
+    code === "42501" &&
+    /Users manage their own push subscriptions/i.test(databaseMessage)
+  ) {
+    return "You can only manage push notifications for your own account.";
+  }
+
+  return message;
+}
+
 async function initSettingsPage() {
   const containerEl = document.getElementById("settingsContainer");
   document
@@ -199,20 +228,25 @@ async function initPushNotificationSetup() {
       const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
       if (userError) throw userError;
       if (user) {
-        const { data, error } = await supabaseClient
-          .from("push_subscriptions")
-          .select("id")
-          .eq("user_id", user.id)
-          .eq("endpoint", currentSubscription.endpoint)
-          .maybeSingle();
-        if (error) throw error;
-        isEnabled = Boolean(data);
+        const blockMessage = await getPushSubscriptionBlockMessage(user.id);
+        if (blockMessage) {
+          statusOverride = { message: blockMessage, state: "error" };
+        } else {
+          const { data, error } = await supabaseClient
+            .from("push_subscriptions")
+            .select("id")
+            .eq("user_id", user.id)
+            .eq("endpoint", currentSubscription.endpoint)
+            .maybeSingle();
+          if (error) throw error;
+          isEnabled = Boolean(data);
+        }
       }
     }
   } catch (error) {
     console.error("Could not check push notification setup:", error);
     statusOverride = {
-      message: window.getSupabaseErrorMessage?.(error, "Could not check this device’s notification setup. Try again."),
+      message: getPushNotificationErrorMessage(error, "Could not check this device’s notification setup. Try again."),
       state: "error",
     };
   }
@@ -251,6 +285,13 @@ async function initPushNotificationSetup() {
         isEnabled = false;
         statusOverride = { message: "Push notifications are off on this device.", state: "success" };
       } else {
+        const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+        if (userError) throw userError;
+        if (!user) throw new Error("Sign in before enabling push notifications.");
+
+        const blockMessage = await getPushSubscriptionBlockMessage(user.id);
+        if (blockMessage) throw new Error(blockMessage);
+
         let permission = Notification.permission;
         if (permission === "default") {
           permission = await Notification.requestPermission();
@@ -264,10 +305,6 @@ async function initPushNotificationSetup() {
               applicationServerKey: base64UrlToUint8Array(window.T_HUB_VAPID_PUBLIC_KEY),
             });
           }
-          const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-          if (userError) throw userError;
-          if (!user) throw new Error("Sign in before enabling push notifications.");
-
           const saveSubscription = async (activeSubscription) => {
             const subscriptionData = activeSubscription.toJSON();
             return supabaseClient.from("push_subscriptions").upsert({
@@ -290,7 +327,7 @@ async function initPushNotificationSetup() {
     } catch (error) {
       console.error("Could not set up push notifications:", error);
       statusOverride = {
-        message: window.getSupabaseErrorMessage?.(error, "Could not update notifications on this device. Check your connection and try again."),
+        message: getPushNotificationErrorMessage(error, "Could not update notifications on this device. Check your connection and try again."),
         state: "error",
       };
     } finally {
@@ -306,6 +343,34 @@ function base64UrlToUint8Array(value) {
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(base64);
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
+}
+
+async function getPushSubscriptionBlockMessage(userId) {
+  const { data: profile, error: profileError } = await supabaseClient
+    .from("profiles")
+    .select("status")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError) throw profileError;
+  if (!profile || String(profile.status || "").trim().toLowerCase() !== "active") {
+    return "Push notifications are blocked because this account is not active. Contact your school administrator.";
+  }
+
+  const { data: enrollments, error: enrollmentError } = await supabaseClient
+    .from("student_enrollments")
+    .select("enrollment_status")
+    .eq("student_id", userId);
+  if (enrollmentError) throw enrollmentError;
+
+  const isGraduatedOrTransferred = (enrollments || []).some((enrollment) =>
+    ["graduated", "transferred", "transfered"].includes(
+      String(enrollment.enrollment_status || "").trim().toLowerCase(),
+    ),
+  );
+
+  return isGraduatedOrTransferred
+    ? "Push notifications are blocked because your enrollment is marked as graduated or transferred. Contact your school administrator if this is a mistake."
+    : null;
 }
 
 let clearDataDialogTrigger = null;

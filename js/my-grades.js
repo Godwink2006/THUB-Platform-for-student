@@ -282,6 +282,7 @@ function setupStudentGradeFilters() {
 function fillFilterSelect(select, placeholder, values, required = false) {
   if (!select) return;
   const selectedValue = select.value;
+  const options = window.buildUniqueFilterOptions?.(values) || [];
 
   select.replaceChildren();
   const placeholderOption = document.createElement("option");
@@ -289,22 +290,24 @@ function fillFilterSelect(select, placeholder, values, required = false) {
   placeholderOption.textContent = placeholder;
   select.appendChild(placeholderOption);
 
-  const options = [...values.entries()].sort((a, b) =>
-    String(a[1]).localeCompare(String(b[1]), undefined, {
+  options.sort((a, b) =>
+    String(a.label).localeCompare(String(b.label), undefined, {
       numeric: true,
       sensitivity: "base",
     }),
   );
 
-  options.forEach(([id, label]) => {
+  options.forEach(({ value, label }) => {
     const option = document.createElement("option");
-    option.value = id;
+    option.value = value;
     option.textContent = label;
     select.appendChild(option);
   });
 
   select.required = required;
-  if (selectedValue && values.has(selectedValue)) select.value = selectedValue;
+  if (options.some((option) => option.value === selectedValue)) {
+    select.value = selectedValue;
+  }
 }
 
 async function loadStudentStatusForTerm(studentId, academicYearId, termId) {
@@ -358,11 +361,11 @@ async function renderSelectedStudentGrades() {
     const records = cachedStudentGrades.filter((record) => {
       const grade = record.grades;
       const term = getOneRelation(grade.terms);
-      const matchesYear = !yearId || String(grade.academic_year_id) === String(yearId);
+      const matchesYear = window.filterSelectionMatches?.(yearId, grade.academic_year_id) ?? (!yearId || String(grade.academic_year_id) === String(yearId));
       const matchesSemester = ![1, 2].includes(semesterNumber) || getSemesterNumber(term?.name) === semesterNumber;
       const matchesAssessment = !assessmentIds.length || assessmentIds.includes(String(grade.assessment_id));
-      const matchesClass = !classId || String(grade.class_id) === String(classId);
-      const matchesSubject = !subjectId || String(grade.subject_id) === String(subjectId);
+      const matchesClass = window.filterSelectionMatches?.(classId, grade.class_id) ?? (!classId || String(grade.class_id) === String(classId));
+      const matchesSubject = window.filterSelectionMatches?.(subjectId, grade.subject_id) ?? (!subjectId || String(grade.subject_id) === String(subjectId));
 
       return (
         matchesYear &&
@@ -426,9 +429,15 @@ async function renderSelectedStudentGrades() {
 
     if (yearId && [1, 2].includes(semesterNumber) && gradesStudentId) {
       const selectedTerm = studentTerms.find(
-        (term) => String(term.academic_year_id) === String(yearId) && getSemesterNumber(term.name) === semesterNumber,
+        (term) =>
+          window.filterSelectionMatches?.(yearId, term.academic_year_id) &&
+          getSemesterNumber(term.name) === semesterNumber,
       );
-      void loadStudentStatusForTerm(gradesStudentId, yearId, selectedTerm?.id);
+      void loadStudentStatusForTerm(
+        gradesStudentId,
+        selectedTerm?.academic_year_id || yearId,
+        selectedTerm?.id,
+      );
     } else {
       const badge = document.getElementById("studentStatusBadge");
       if (badge) {

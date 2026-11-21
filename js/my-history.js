@@ -373,16 +373,17 @@ function fillHistorySelect(id, options, placeholder, selectedValue) {
   const select = document.getElementById(id);
   if (!select) return;
   const selected = selectedValue || "";
+  const uniqueOptions = window.buildUniqueFilterOptions?.(options) || [];
   select.innerHTML =
     `<option value="">${escapeHistoryHtml(placeholder)}</option>` +
-    [...options.entries()]
-      .sort((a, b) => String(a[1]).localeCompare(String(b[1])))
+    uniqueOptions
+      .sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { sensitivity: "base", numeric: true }))
       .map(
-        ([value, label]) =>
+        ({ value, label }) =>
           `<option value="${escapeHistoryHtml(value)}">${escapeHistoryHtml(label)}</option>`,
       )
       .join("");
-  if (selected && options.has(selected)) select.value = selected;
+  if (uniqueOptions.some((option) => option.value === selected)) select.value = selected;
   else select.value = "";
 }
 
@@ -407,9 +408,9 @@ function getSemesterNumber(termName) {
 }
 
 function rowMatchesFilters(row, filters) {
-  if (filters.schoolId && row.schoolId !== filters.schoolId) return false;
-  if (filters.yearId && row.yearId !== filters.yearId) return false;
-  if (filters.classId && row.classId !== filters.classId) return false;
+  if (!(window.filterSelectionMatches?.(filters.schoolId, row.schoolId) ?? (!filters.schoolId || row.schoolId === filters.schoolId))) return false;
+  if (!(window.filterSelectionMatches?.(filters.yearId, row.yearId) ?? (!filters.yearId || row.yearId === filters.yearId))) return false;
+  if (!(window.filterSelectionMatches?.(filters.classId, row.classId) ?? (!filters.classId || row.classId === filters.classId))) return false;
   if (filters.semesterNumber && getSemesterNumber(row.termName) !== filters.semesterNumber) return false;
   if (filters.type && row.type !== filters.type) return false;
 

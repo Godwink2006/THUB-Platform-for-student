@@ -183,7 +183,7 @@ async function initializeBooksPage(options = {}) {
   booksGraduatedAccess = false;
   hideBooksNotice();
   const refreshButton = document.getElementById("refreshBooksCatalog");
-  if (!booksCacheRestored || forceCatalogRefresh) showBooksCatalogLoading();
+  if (allCatalogBooks.length === 0) showBooksCatalogLoading();
   if (forceCatalogRefresh && refreshButton) {
     refreshButton.disabled = true;
     refreshButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>';
@@ -272,7 +272,9 @@ async function initializeBooksPage(options = {}) {
       return;
     }
     booksCacheRestored = false;
-    await loadBookCatalog();
+    await loadBookCatalog({
+      preserveCurrent: forceCatalogRefresh && allCatalogBooks.length > 0,
+    });
   } catch (error) {
     console.error("Could not determine Books page access:", error);
     allCatalogBooks = [];
@@ -294,12 +296,13 @@ async function loadBookCatalog(options = {}) {
   const gridContainer = document.getElementById("bookCardGrid");
   if (!gridContainer) return;
   const append = options.append === true;
+  const preserveCurrent = options.preserveCurrent === true && !append;
   const nextButton = document.getElementById("nextBooksPage");
 
   if (booksLoading || (append && !booksHasMore)) return;
   booksLoading = true;
 
-  if (!append) {
+  if (!append && !preserveCurrent) {
     booksOffset = 0;
     booksHasMore = false;
     allCatalogBooks = [];
@@ -316,6 +319,7 @@ async function loadBookCatalog(options = {}) {
   hideBooksNotice();
 
   try {
+    const queryOffset = append ? booksOffset : 0;
     const { data: page, error } = await window.supabaseClient
       .from("books")
       .select(
@@ -327,7 +331,7 @@ async function loadBookCatalog(options = {}) {
       .eq("status", "active")
       .order("title", { ascending: true })
       .order("id", { ascending: true })
-      .range(booksOffset, booksOffset + BOOKS_PAGE_SIZE);
+      .range(queryOffset, queryOffset + BOOKS_PAGE_SIZE);
 
     if (error) throw error;
 
@@ -336,12 +340,16 @@ async function loadBookCatalog(options = {}) {
     booksHasMore = books.length > BOOKS_PAGE_SIZE;
 
     if (visibleBooks.length === 0) {
-      if (!append) renderBookCards([]);
+      if (!append) {
+        allCatalogBooks = [];
+        booksOffset = 0;
+        renderBookCards([]);
+      }
       saveBooksCache();
       return;
     }
 
-    booksOffset += visibleBooks.length;
+    booksOffset = queryOffset + visibleBooks.length;
     const catalogPage = visibleBooks.map((book) => ({
       ...book,
       available_copies: getAvailableBookCopies(book),
@@ -357,7 +365,7 @@ async function loadBookCatalog(options = {}) {
   } catch (err) {
     console.error("Error loading catalog:", err);
     showBooksNotice(booksErrorMessage(err), "error", () => loadBookCatalog({ append }));
-    if (!append) {
+    if (!append && !preserveCurrent) {
       gridContainer.replaceChildren();
     }
   } finally {

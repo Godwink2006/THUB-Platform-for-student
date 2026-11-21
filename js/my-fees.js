@@ -176,15 +176,16 @@ function fillFeeFilter(select, placeholder, values, selectedValue = "") {
   placeholderOption.textContent = placeholder;
   select.appendChild(placeholderOption);
 
-  [...values.entries()]
-    .sort((a, b) => String(a[1]).localeCompare(String(b[1]), undefined, { numeric: true }))
-    .forEach(([id, label]) => {
+  const options = window.buildUniqueFilterOptions?.(values) || [];
+  options
+    .sort((a, b) => String(a.label).localeCompare(String(b.label), undefined, { numeric: true, sensitivity: "base" }))
+    .forEach(({ value, label }) => {
       const option = document.createElement("option");
-      option.value = id;
+      option.value = value;
       option.textContent = label;
       select.appendChild(option);
     });
-  if (selectedValue && values.has(selectedValue)) select.value = selectedValue;
+  if (options.some((option) => option.value === selectedValue)) select.value = selectedValue;
 }
 function renderFeesTable(fees, container) {
   let html = `
@@ -267,8 +268,8 @@ function renderSelectedStudentFees() {
   };
   const semesterNumber = Number(filters.semester_number || 0);
   const fees = cachedStudentFees.filter((fee) =>
-    (!filters.academic_year_id || String(fee.academic_year_id) === String(filters.academic_year_id)) &&
-    (!filters.class_id || String(fee.class_id) === String(filters.class_id)) &&
+    (window.filterSelectionMatches?.(filters.academic_year_id, fee.academic_year_id) ?? (!filters.academic_year_id || String(fee.academic_year_id) === String(filters.academic_year_id))) &&
+    (window.filterSelectionMatches?.(filters.class_id, fee.class_id) ?? (!filters.class_id || String(fee.class_id) === String(filters.class_id))) &&
     (!semesterNumber || getSemesterNumber(fee.terms?.name) === semesterNumber)
   );
 

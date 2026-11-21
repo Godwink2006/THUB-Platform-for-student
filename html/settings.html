@@ -58,7 +58,9 @@
           (() => {
             try {
               const pageKey = "thubStudentPageCache:v1:settings-school";
-              const cachedUserId = sessionStorage.getItem(`${pageKey}:last-user`);
+              const cachedUserId =
+                localStorage.getItem(`${pageKey}:last-user`) ||
+                sessionStorage.getItem(`${pageKey}:last-user`);
               if (!cachedUserId) return;
               const hasMatchingSession = Object.keys(localStorage).some((key) => {
                 if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
@@ -70,7 +72,10 @@
                 }
               });
               if (!hasMatchingSession) return;
-              const cached = JSON.parse(sessionStorage.getItem(`${pageKey}:${cachedUserId}`) || "null");
+              const cacheKey = `${pageKey}:${cachedUserId}`;
+              const cachedValue =
+                localStorage.getItem(cacheKey) || sessionStorage.getItem(cacheKey);
+              const cached = JSON.parse(cachedValue || "null");
               const school = cached?.userId === cachedUserId ? cached.data : null;
               if (!school) return;
               document.getElementById("settingsSchoolName").textContent = school.schoolName || "My School";
