@@ -82,38 +82,10 @@ function schoolInformationErrorMessage(error, action = "load") {
     : "School information could not be loaded. Refresh the page or contact your school administrator.";
 }
 
-function disableFormInputs(form) {
-  if (!form) return;
-
-  const inputs = form.querySelectorAll("input, select, textarea, button");
-  inputs.forEach((input) => {
-    input.disabled = true;
-  });
-
-  const buttonsToHide = form.querySelectorAll(
-    '.save-btn, .reset-btn, button[type="submit"], button[type="reset"]',
-  );
-  buttonsToHide.forEach((btn) => {
-    btn.style.display = "none";
-  });
-
-  const logoWrapper = document.getElementById("changeSchoolLogo");
-  if (logoWrapper) {
-    logoWrapper.style.display = "none";
-  }
-
-  const changeLogoBtn = document.querySelector(
-    '.upload-btn, label[for="schoolLogo"]',
-  );
-  if (changeLogoBtn) {
-    changeLogoBtn.style.display = "none";
-  }
-}
-
 async function loadSchoolProfile() {
   try {
     const user = schoolInformationUser;
-    if (!user) return;
+    if (!user) return false;
 
     const { data: userProfile, error: profileError } = await supabaseClient
       .from("profiles")
@@ -124,7 +96,7 @@ async function loadSchoolProfile() {
 
     if (!userProfile?.school_id) {
       showSchoolInformationMessage("Your account is not linked to a school.", "error");
-      return;
+      return false;
     }
 
     const { data, error } = await supabaseClient
@@ -135,48 +107,45 @@ async function loadSchoolProfile() {
 
     if (error) throw error;
 
-    if (data) {
-
-      const logoImg = document.getElementById("schoolLogoPreview");
-      if (logoImg && data.logo_url) {
-        logoImg.src = data.logo_url;
-      }
-
-      setValue("schoolName", data.school_name);
-      setValue("schoolMotto", data.school_motto);
-      setValue("schoolEmail", data.email);
-      setValue("alternativePhone", data.alternative_phone);
-      setValue("schoolWebsite", data.website);
-      setValue("schoolAddress", data.address);
-      setValue("schoolCity", data.city);
-      setValue("schoolCountry", data.country);
-
-      setValue("principalName", data.principal_name);
-      setValue("principalEmail", data.principal_email);
-      setValue("principalPhone", data.principal_phone);
-
-      setValue("schoolType", data.school_type);
-      setValue("educationLevel", data.education_level);
+    if (!data) {
+      showSchoolInformationMessage("School information could not be found.", "error");
+      return false;
     }
+
+    const logoImg = document.getElementById("schoolLogoPreview");
+    if (logoImg) logoImg.src = data.logo_url || "/icons/school-avatar-default.svg";
+
+    setText("schoolNameValue", data.school_name);
+    setText("schoolMottoValue", data.school_motto);
+    setText("schoolEmailValue", data.email);
+    setText("alternativePhoneValue", data.alternative_phone);
+    setText("schoolWebsiteValue", data.website);
+    setText("schoolAddressValue", data.address);
+    setText("schoolCityValue", data.city);
+    setText("schoolCountryValue", data.country);
+    setText("principalNameValue", data.principal_name);
+    setText("principalEmailValue", data.principal_email);
+    setText("principalPhoneValue", data.principal_phone);
+    setText("schoolTypeValue", data.school_type);
+    setText("educationLevelValue", data.education_level);
+    return true;
   } catch (err) {
     console.error("Error loading school profile:", err);
     showSchoolInformationMessage(schoolInformationErrorMessage(err), "error");
+    return false;
   }
 }
 
-function setValue(id, val) {
+function setText(id, val) {
   const el = document.getElementById(id);
-  if (el && val !== null && val !== undefined) {
-    el.value = val;
-  }
+  if (!el) return;
+  const value = typeof val === "string" ? val.trim() : val;
+  el.textContent = value ? String(value) : "Not provided";
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const form =
-    document.getElementById("schoolInformationForm") ||
-    document.getElementById("schoolProfileForm") ||
-    document.querySelector("form");
   const loader = document.getElementById("formLoader");
+  const view = document.getElementById("schoolInformationView");
 
   let access = { isGraduatedStudent: false, user: null };
   try {
@@ -187,15 +156,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     showSchoolInformationMessage(schoolInformationErrorMessage(error), "error");
   }
 
-  disableFormInputs(form);
-
   if (access.isGraduatedStudent) {
     const page = document.getElementById("schoolInformationPage");
     page?.classList.add("graduated-school-access");
-    if (form) {
-      form.style.display = "none";
-      form.classList.add("auth-ready");
-    }
+    if (view) view.hidden = true;
     if (loader) loader.style.display = "none";
     showSchoolInformationMessage(
       "School Information is unavailable because your enrollment is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
@@ -203,9 +167,9 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  await loadSchoolProfile();
+  const loaded = await loadSchoolProfile();
 
   if (loader) loader.style.display = "none";
-  if (form) form.classList.add("auth-ready");
+  if (view) view.hidden = !loaded;
 
 });

@@ -43,219 +43,61 @@
     <section class="settings-page" id="schoolInformationPage">
       <div class="page-header">
         <h2>School Information</h2>
-        <p>view or manage your school's general information and identity.</p>
       </div>
-
-      <button
-        onclick="window.location.href = 'settings.html'"
-        class="back-school-informations-btn"
-      >
-        <i class="fa-solid fa-chevron-left"></i>
-        Back
-      </button>
 
       <div id="formLoader" class="form-loader">
         <div class="spinner"></div>
-        <p>Loading........</p>
+        <p>Loading school information…</p>
       </div>
 
       <div id="schoolInformationNotice" class="school-information-notice" role="status" hidden></div>
 
-      <form id="schoolInformationForm" class="settings-form">
-        <div class="form-section">
-          <h3>School Logo</h3>
-
-          <div class="avatar-upload-group">
-            <div class="avatar-edit-container">
-              <div class="my-profile-upload">
-                <img
-                  id="schoolLogoPreview"
-                  src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                  alt="Profile Picture"
-                  style="
-                    width: 150px;
-                    height: 150px;
-                    border-radius: 50%;
-                    object-fit: cover;
-                    display: block;
-                  "
-                  onerror="
-                    this.onerror = null;
-                    this.src =
-                      'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-                  "
-                />
-
-                <div id="changeSchoolLogo" class="avatar-upload-actions">
-                  <label for="schoolLogo" class="btn-secondary upload-btn">
-                    <i class="bx bx-upload"></i> Change Logo
-                  </label>
-
-                  <input type="file" id="schoolLogo" accept="image/*" hidden />
-                </div>
-              </div>
-            </div>
+      <div id="schoolInformationView" class="school-information-view" hidden>
+        <div class="school-profile-intro">
+          <img
+            id="schoolLogoPreview"
+            class="school-logo"
+            src="/icons/school-avatar-default.svg"
+            alt="School logo"
+            onerror="this.onerror = null; this.src = '/icons/school-avatar-default.svg';"
+          />
+          <div>
+            <h1 id="schoolNameValue">—</h1>
+            <p id="schoolMottoValue" class="school-motto">—</p>
           </div>
         </div>
 
-        <div class="form-section">
-          <h3>General Information</h3>
+        <div class="school-details-card">
+          <section class="school-info-section" aria-labelledby="generalInfoHeading">
+            <h2 id="generalInfoHeading"><i class="fa-solid fa-building-columns" aria-hidden="true"></i> General information</h2>
+            <dl class="school-info-list">
+              <div class="school-info-item"><dt>Email</dt><dd id="schoolEmailValue">—</dd></div>
+              <div class="school-info-item"><dt>Alternative phone</dt><dd id="alternativePhoneValue">—</dd></div>
+              <div class="school-info-item"><dt>Website</dt><dd id="schoolWebsiteValue">—</dd></div>
+              <div class="school-info-item school-info-item-wide"><dt>Address</dt><dd id="schoolAddressValue">—</dd></div>
+              <div class="school-info-item"><dt>City</dt><dd id="schoolCityValue">—</dd></div>
+              <div class="school-info-item"><dt>Country</dt><dd id="schoolCountryValue">—</dd></div>
+            </dl>
+          </section>
 
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="schoolName">School Name</label>
+          <section class="school-info-section" aria-labelledby="leadershipHeading">
+            <h2 id="leadershipHeading"><i class="fa-solid fa-user-tie" aria-hidden="true"></i> Principal / Head Teacher</h2>
+            <dl class="school-info-list">
+              <div class="school-info-item"><dt>Full name</dt><dd id="principalNameValue">—</dd></div>
+              <div class="school-info-item"><dt>Email</dt><dd id="principalEmailValue">—</dd></div>
+              <div class="school-info-item"><dt>Phone number</dt><dd id="principalPhoneValue">—</dd></div>
+            </dl>
+          </section>
 
-              <textarea
-                type="text"
-                id="schoolName"
-                placeholder="School Name"
-                required
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="schoolMotto">School Motto</label>
-
-              <textarea
-                type="text"
-                id="schoolMotto"
-                placeholder="School Motto"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="schoolEmail">Email</label>
-
-              <textarea
-                type="email"
-                id="schoolEmail"
-                placeholder="School Email"
-                required
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="alternativePhone">Alternative Phone</label>
-
-              <input
-                type="tel"
-                id="alternativePhone"
-                placeholder="Phone Number"
-              />
-            </div>
-
-            <div class="form-group">
-              <label for="schoolWebsite">Website</label>
-
-              <textarea
-                type="url"
-                id="schoolWebsite"
-                placeholder="https://example.com"
-              ></textarea>
-            </div>
-
-            <div class="form-group full-width">
-              <label for="schoolAddress">Address</label>
-
-              <textarea
-                rows="3"
-                id="schoolAddress"
-                placeholder="school address"
-                required
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="schoolCity">City</label>
-
-              <input type="text" id="schoolCity" placeholder="city" required />
-            </div>
-
-            <div class="form-group">
-              <label for="schoolCountry">Country</label>
-
-              <input
-                type="text"
-                id="schoolCountry"
-                placeholder="country"
-                required
-              />
-            </div>
-          </div>
+          <section class="school-info-section" aria-labelledby="schoolDetailsHeading">
+            <h2 id="schoolDetailsHeading"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> School details</h2>
+            <dl class="school-info-list">
+              <div class="school-info-item"><dt>School type</dt><dd id="schoolTypeValue">—</dd></div>
+              <div class="school-info-item"><dt>Education level</dt><dd id="educationLevelValue">—</dd></div>
+            </dl>
+          </section>
         </div>
-
-        <div class="form-section">
-          <h3>Principal / Head Teacher</h3>
-
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="principalName">Full Name</label>
-              <textarea
-                type="text"
-                id="principalName"
-                placeholder="Principal's name"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="principalEmail">Email</label>
-              <textarea
-                type="email"
-                id="principalEmail"
-                placeholder="Principal's email"
-              ></textarea>
-            </div>
-
-            <div class="form-group">
-              <label for="principalPhone">Phone Number</label>
-              <input
-                type="tel"
-                id="principalPhone"
-                placeholder="Principal's phone"
-              />
-            </div>
-          </div>
-        </div>
-
-        <div class="form-section">
-          <h3>School Details</h3>
-
-          <div class="form-grid">
-            <div class="form-group">
-              <label for="schoolType">School type</label>
-              <select id="schoolType" required>
-                <option>School Type</option>
-                <option>Day School</option>
-                <option>Boarding School</option>
-                <option>Day & Boarding</option>
-                <option>Public</option>
-                <option>Private</option>
-                <option>International</option>
-              </select>
-            </div>
-
-            <div class="form-group">
-              <label for="educationLevel">Education Level</label>
-              <select id="educationLevel" required>
-                <option>School Level</option>
-                <option>High School</option>
-                <option>Primary</option>
-                <option>Secondary</option>
-                <option>Nursery</option>
-                <option>Junior Secondary</option>
-                <option>Senior Secondary</option>
-                <option>Primary & Secondary</option>
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-actions">
-          <button type="reset" class="cancel-btn">Reset</button>
-
-          <button type="submit" class="save-btn">Save Changes</button>
-        </div>
-      </form>
+      </div>
     </section>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
