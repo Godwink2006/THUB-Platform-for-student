@@ -1,6 +1,9 @@
 let cachedStudentGrades = [];
 let cachedStudentGradeCreators = new Map();
 let studentTerms = [];
+const MY_GRADES_CACHE_PAGE = "my-grades";
+let gradesStudentId = null;
+let gradesLoading = false;
 
 function getOneRelation(value) {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
@@ -18,15 +21,77 @@ function getSemesterNumber(termName) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  await initStudentContext();
+  restoreCachedStudentGrades();
+  document.getElementById("refreshStudentGrades")?.addEventListener("click", () => {
+    void loadStudentGradeData({ refresh: true });
+  });
+  [
+    "studentAcademicYearSelect",
+    "studentTermSelect",
+    "studentAssessmentSelect",
+    "studentClassSelect",
+    "studentSubjectSelect",
+  ].forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", renderSelectedStudentGrades);
+  });
+  void loadStudentGradeData();
 });
 
-async function initStudentContext() {
+function cachedGradesMatchSession(cachedUserId) {
+  if (!cachedUserId) return false;
+  try {
+    return Object.keys(localStorage).some((key) => {
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
+      try {
+        return JSON.parse(localStorage.getItem(key) || "null")?.user?.id === cachedUserId;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+function restoreCachedStudentGrades() {
+  const cached = window.studentPageCache?.readLast(MY_GRADES_CACHE_PAGE);
+  if (
+    !cached?.data ||
+    !Array.isArray(cached.data.grades) ||
+    !Array.isArray(cached.data.terms) ||
+    !Array.isArray(cached.data.creators) ||
+    !cachedGradesMatchSession(cached.userId)
+  ) return false;
+
+  gradesStudentId = cached.userId;
+  cachedStudentGrades = cached.data.grades;
+  studentTerms = cached.data.terms;
+  cachedStudentGradeCreators = new Map(cached.data.creators);
+  setupStudentGradeFilters();
+  renderSelectedStudentGrades();
+  return true;
+}
+
+function setGradesRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshStudentGrades");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.setAttribute("aria-busy", String(isRefreshing));
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+async function loadStudentGradeData(options = {}) {
+  if (gradesLoading) return;
+  gradesLoading = true;
+  const refresh = options.refresh === true;
+  if (refresh) setGradesRefreshState(true);
   const client = window.supabaseClient || supabaseClient;
   const reportContainer = document.getElementById("studentGradesReport");
-  const applyButton = document.getElementById("applyStudentGradeFilters");
 
   try {
+    if (!client) throw new Error("The database client is unavailable.");
     const {
       data: { user },
       error: userError,
@@ -35,13 +100,8 @@ async function initStudentContext() {
     if (userError || !user) {
       throw new Error("Please sign in to view your grades.");
     }
-
-    if (reportContainer) {
-      reportContainer.innerHTML = `
-        <p style="text-align:center;color:#888;padding:20px;">
-          Loading your published grades and filter options...
-        </p>`;
-    }
+    gradesStudentId = user.id;
+    if (refresh) window.studentTransferHistoryIndex = null;
 
     const historyIndex = await window.getStudentTransferHistoryIndex(client);
     const historicalGradeIds = historyIndex?.recordIds?.grade || new Set();
@@ -158,78 +218,66 @@ async function initStudentContext() {
       }
     }
 
-    const yearSelect = document.getElementById("studentAcademicYearSelect");
-    const termSelect = document.getElementById("studentTermSelect");
-    const assessmentSelect = document.getElementById("studentAssessmentSelect");
-    const classSelect = document.getElementById("studentClassSelect");
-    const subjectSelect = document.getElementById("studentSubjectSelect");
-    const statusBadge = document.getElementById("studentStatusBadge");
-
-    const years = new Map();
-    const assessments = new Map();
-    const classes = new Map();
-    const subjects = new Map();
-
-    cachedStudentGrades.forEach((record) => {
-      const grade = record.grades;
-      const year = getOneRelation(grade.academic_years);
-      const assessment = getOneRelation(grade.assessments);
-      const schoolClass = getOneRelation(grade.classes);
-      const subject = getOneRelation(grade.subjects);
-
-      if (year?.id) years.set(String(year.id), year.year_label || "Academic year");
-      if (assessment?.id) assessments.set(String(assessment.id), assessment.name || "Assessment");
-      if (schoolClass?.id) classes.set(String(schoolClass.id), schoolClass.name || "Class");
-      if (subject?.id) subjects.set(String(subject.id), subject.name || "Subject");
+    window.studentPageCache?.write(MY_GRADES_CACHE_PAGE, user.id, {
+      grades: cachedStudentGrades,
+      terms: studentTerms,
+      creators: [...cachedStudentGradeCreators.entries()],
     });
-
-    fillFilterSelect(yearSelect, "All Academic Years", years);
-    setAssessmentPeriodOptions(
-      assessmentSelect,
-      [...assessments.entries()].map(([id, name]) => ({ id, name })),
-      "All Assessment Periods",
-    );
-    fillFilterSelect(classSelect, "All Classes", classes);
-    fillFilterSelect(subjectSelect, "All Subjects", subjects);
-
-    if (termSelect) {
-      termSelect.innerHTML = `
-        <option value="">All Semesters</option>
-        <option value="1">1st Semester</option>
-        <option value="2">2nd Semester</option>`;
-    }
-
-    if (statusBadge) {
-      statusBadge.textContent = "Multiple periods";
-      statusBadge.className = "status-badge normal";
-    }
-
-    applyButton?.addEventListener("click", () => loadStudentGrades(user.id));
-
-    if (!cachedStudentGrades.length && reportContainer) {
-      reportContainer.innerHTML = `
-        <p style="text-align:center;color:#888;padding:20px;">
-          No published grades are available yet.
-        </p>`;
-    } else if (reportContainer) {
-      reportContainer.innerHTML = `
-        <p style="text-align:center;color:#888;padding:20px;">
-          All academic years and semesters are selected. Adjust any filters, then select View grades.
-        </p>`;
-    }
+    setupStudentGradeFilters();
+    renderSelectedStudentGrades();
   } catch (error) {
     console.error("Error initializing My Grades:", error);
     if (reportContainer) {
-      reportContainer.innerHTML = `
-        <p style="text-align:center;color:#ef4444;padding:20px;">
-          ${escapeHTML(error.message || "Could not load your grade filters.")}
-        </p>`;
+      if (!cachedStudentGrades.length) {
+        reportContainer.innerHTML = `
+          <p class="grades-state grades-state-error">
+            ${escapeHTML(error.message || "Could not load your grades. Refresh the page or try again.")}
+          </p>`;
+      }
     }
+  } finally {
+    gradesLoading = false;
+    if (refresh) setGradesRefreshState(false);
+  }
+}
+
+function setupStudentGradeFilters() {
+  const yearSelect = document.getElementById("studentAcademicYearSelect");
+  const assessmentSelect = document.getElementById("studentAssessmentSelect");
+  const classSelect = document.getElementById("studentClassSelect");
+  const subjectSelect = document.getElementById("studentSubjectSelect");
+  const years = new Map();
+  const assessments = new Map();
+  const classes = new Map();
+  const subjects = new Map();
+
+  cachedStudentGrades.forEach((record) => {
+    const grade = record.grades;
+    const year = getOneRelation(grade.academic_years);
+    const assessment = getOneRelation(grade.assessments);
+    const schoolClass = getOneRelation(grade.classes);
+    const subject = getOneRelation(grade.subjects);
+    if (year?.id) years.set(String(year.id), year.year_label || "Academic year");
+    if (assessment?.id) assessments.set(String(assessment.id), assessment.name || "Assessment");
+    if (schoolClass?.id) classes.set(String(schoolClass.id), schoolClass.name || "Class");
+    if (subject?.id) subjects.set(String(subject.id), subject.name || "Subject");
+  });
+
+  fillFilterSelect(yearSelect, "All Academic Years", years);
+  setAssessmentPeriodOptions(assessmentSelect, [...assessments.entries()].map(([id, name]) => ({ id, name })), "All Assessment Periods");
+  fillFilterSelect(classSelect, "All Classes", classes);
+  fillFilterSelect(subjectSelect, "All Subjects", subjects);
+  const termSelect = document.getElementById("studentTermSelect");
+  if (termSelect) {
+    const selectedTerm = termSelect.value;
+    termSelect.innerHTML = '<option value="">All Semesters</option><option value="1">1st Semester</option><option value="2">2nd Semester</option>';
+    termSelect.value = selectedTerm;
   }
 }
 
 function fillFilterSelect(select, placeholder, values, required = false) {
   if (!select) return;
+  const selectedValue = select.value;
 
   select.replaceChildren();
   const placeholderOption = document.createElement("option");
@@ -252,6 +300,7 @@ function fillFilterSelect(select, placeholder, values, required = false) {
   });
 
   select.required = required;
+  if (selectedValue && values.has(selectedValue)) select.value = selectedValue;
 }
 
 async function loadStudentStatusForTerm(studentId, academicYearId, termId) {
@@ -286,9 +335,8 @@ async function loadStudentStatusForTerm(studentId, academicYearId, termId) {
   }
 }
 
-async function loadStudentGrades(authUserId) {
+async function renderSelectedStudentGrades() {
   const reportContainer = document.getElementById("studentGradesReport");
-  const applyButton = document.getElementById("applyStudentGradeFilters");
   const yearId = document.getElementById("studentAcademicYearSelect")?.value || "";
   const semesterValue = document.getElementById("studentTermSelect")?.value || "";
   const semesterNumber = Number(semesterValue);
@@ -299,32 +347,7 @@ async function loadStudentGrades(authUserId) {
 
   if (!reportContainer) return;
 
-  const selectedTerm = yearId && [1, 2].includes(semesterNumber)
-    ? studentTerms.find(
-        (term) =>
-          String(term.academic_year_id) === String(yearId) &&
-          getSemesterNumber(term.name) === semesterNumber,
-      )
-    : null;
-
-  if (applyButton) {
-    applyButton.disabled = true;
-    applyButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Loading...';
-  }
-  reportContainer.innerHTML = `
-    <p style="text-align:center;color:#888;padding:20px;">Loading your grades...</p>`;
-
   try {
-    if (yearId && [1, 2].includes(semesterNumber)) {
-      await loadStudentStatusForTerm(authUserId, yearId, selectedTerm?.id);
-    } else {
-      const badge = document.getElementById("studentStatusBadge");
-      if (badge) {
-        badge.textContent = "Multiple periods";
-        badge.className = "status-badge normal";
-      }
-    }
-
     const records = cachedStudentGrades.filter((record) => {
       const grade = record.grades;
       const term = getOneRelation(grade.terms);
@@ -345,65 +368,73 @@ async function loadStudentGrades(authUserId) {
 
     if (!records.length) {
       reportContainer.innerHTML = `
-        <p style="text-align:center;color:#888;padding:20px;">
-          No published grades match the selected filters.
+        <p class="grades-state">
+          ${cachedStudentGrades.length ? "No published grades match the selected filters." : "No published grades are available yet."}
         </p>`;
-      return;
+    } else {
+      const grouped = new Map();
+      records.forEach((record) => {
+        const grade = record.grades;
+        const subject = getOneRelation(grade.subjects);
+        const category = getOneRelation(grade.assessment_categories);
+        const subjectName = subject?.name || "General Subject";
+        const categoryName = category?.name || "Assessment";
+
+        if (!grouped.has(subjectName)) grouped.set(subjectName, []);
+        grouped.get(subjectName).push({
+          categoryName,
+          score: record.score,
+          weight: category?.marks ?? "-",
+          creatorId: grade.created_by ? String(grade.created_by) : null,
+        });
+      });
+
+      let html = renderStudentGradesStats(records);
+      grouped.forEach((items, subjectName) => {
+        html += `
+          <div class="card grade-subject-card">
+            <h3>${escapeHTML(subjectName)}</h3>
+            <div class="table-responsive">
+              <table class="table" style="width:100%;border-collapse:collapse;min-width:480px;">
+                <thead>
+                  <tr><th>Category</th><th>Score</th><th>Max Marks</th><th>Entered by</th></tr>
+                </thead>
+                <tbody>
+                  ${items.map((item) => `
+                    <tr>
+                      <td>${escapeHTML(item.categoryName)}</td>
+                      <td><strong>${item.score ?? "N/A"}</strong></td>
+                      <td>${item.weight}</td>
+                      <td>${renderStudentGradeAuthor(cachedStudentGradeCreators.get(item.creatorId), item.creatorId)}</td>
+                    </tr>`).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+      });
+
+      reportContainer.innerHTML = html;
     }
 
-    const grouped = new Map();
-    records.forEach((record) => {
-      const grade = record.grades;
-      const subject = getOneRelation(grade.subjects);
-      const category = getOneRelation(grade.assessment_categories);
-      const subjectName = subject?.name || "General Subject";
-      const categoryName = category?.name || "Assessment";
-
-      if (!grouped.has(subjectName)) grouped.set(subjectName, []);
-      grouped.get(subjectName).push({
-        categoryName,
-        score: record.score,
-        weight: category?.marks ?? "-",
-        creatorId: grade.created_by ? String(grade.created_by) : null,
-      });
-    });
-
-    let html = renderStudentGradesStats(records);
-    grouped.forEach((items, subjectName) => {
-      html += `
-        <div class="card" style="margin-bottom:20px;background:#fff;border:0.5px solid rgb(219,215,215);padding:16px;">
-          <h3>${escapeHTML(subjectName)}</h3>
-          <div class="table-responsive">
-            <table class="table" style="width:100%;border-collapse:collapse;min-width:480px;">
-              <thead>
-                <tr><th>Category</th><th>Score</th><th>Max Marks</th><th>Entered by</th></tr>
-              </thead>
-              <tbody>
-                ${items.map((item) => `
-                  <tr>
-                    <td>${escapeHTML(item.categoryName)}</td>
-                    <td><strong>${item.score ?? "N/A"}</strong></td>
-                    <td>${item.weight}</td>
-                    <td>${renderStudentGradeAuthor(cachedStudentGradeCreators.get(item.creatorId), item.creatorId)}</td>
-                  </tr>`).join("")}
-              </tbody>
-            </table>
-          </div>
-        </div>`;
-    });
-
-    reportContainer.innerHTML = html;
+    if (yearId && [1, 2].includes(semesterNumber) && gradesStudentId) {
+      const selectedTerm = studentTerms.find(
+        (term) => String(term.academic_year_id) === String(yearId) && getSemesterNumber(term.name) === semesterNumber,
+      );
+      void loadStudentStatusForTerm(gradesStudentId, yearId, selectedTerm?.id);
+    } else {
+      const badge = document.getElementById("studentStatusBadge");
+      if (badge) {
+        badge.textContent = "Multiple periods";
+        badge.className = "status-badge normal";
+      }
+    }
   } catch (error) {
     console.error("Error loading student grades:", error);
     reportContainer.innerHTML = `
-      <p style="text-align:center;color:#ef4444;padding:20px;">
+      <p class="grades-state grades-state-error">
         Failed to load grades: ${escapeHTML(error.message || "Unknown error")}
       </p>`;
-  } finally {
-    if (applyButton) {
-      applyButton.disabled = false;
-      applyButton.innerHTML = '<i class="fa-solid fa-filter" aria-hidden="true"></i> View grades';
-    }
   }
 }
 

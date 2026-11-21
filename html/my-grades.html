@@ -39,15 +39,6 @@
     <div class="container">
       <header class="page-header">
         <h1>My Grades</h1>
-        <p>View your academic performance and breakdown.</p>
-
-        <button
-          onclick="window.location.href = 'academics.html'"
-          class="back-grades-btn"
-        >
-          <i class="fa-solid fa-chevron-left"></i>
-          Back
-        </button>
       </header>
 
       <section
@@ -169,16 +160,16 @@
       </section>
 
       <div class="grades-filter-actions">
-        <button id="applyStudentGradeFilters" type="button" class="grades-filter-button">
-          <i class="fa-solid fa-filter" aria-hidden="true"></i>
-          View grades
+        <button id="refreshStudentGrades" type="button" class="grades-filter-button">
+          <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+          <span>Refresh</span>
         </button>
       </div>
 
       <div class="grades-container">
         <div id="studentGradesReport">
           <p style="text-align: center; color: #888; padding: 20px">
-            All academic years and semesters are selected. Adjust any filters, then select View grades.
+            Loading your published grades...
           </p>
         </div>
       </div>
@@ -187,6 +178,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/supabase.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/student-page-cache.js"></script>
     <script src="/js/transfer-history-index.js"></script>
     <script src="/js/my-grades.js"></script>
       <script src="/js/app-icons.js"></script>

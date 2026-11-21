@@ -54,8 +54,8 @@
 
 .grades-filter-actions {
   display: flex;
-  justify-content: flex-end;
-  margin: -12px 0 24px;
+  justify-content: center;
+  margin: -12px 0 20px;
 }
 
 .grades-filter-button {
@@ -63,10 +63,12 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 40px;
+  width: auto;
+  min-width: 150px;
+  min-height: 42px;
   padding: 9px 16px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 20px;
   background: #2563eb;
   color: #ffffff;
   font: inherit;
@@ -82,20 +84,6 @@
 .grades-filter-button:disabled {
   opacity: 0.65;
   cursor: wait;
-}
-
-.back-grades-btn {
-  width: auto;
-  height: 30px;
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  margin-top: 5px;
-  justify-content: space-between;
-  color: #ffff;
-  background: #1f2937;
-  border: 0.5px solid rgb(219, 215, 215);
 }
 
 .grades-container {
@@ -156,6 +144,125 @@
   font-size: 0.8rem;
 }
 
+.grades-state {
+  text-align: center;
+  color: #6b7280;
+  padding: 24px 16px;
+}
+
+.grades-state-error {
+  color: #dc2626;
+}
+
+.grade-subject-card {
+  margin-bottom: 20px;
+  padding: 16px;
+}
+
+body.app-dark .container,
+body.app-dark .page-header,
+body.app-dark .grades-container {
+  color: #f4f4f5;
+}
+
+body.app-dark .toolbar,
+body.app-dark .grades-container .card,
+body.app-dark .stat-card {
+  background: #1c1c1c !important;
+  border: 1px solid #3f3f46 !important;
+  color: #f4f4f5;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+body.app-dark .toolbar select,
+body.app-dark .toolbar .status-display {
+  background: #27272a !important;
+  border-color: #3f3f46 !important;
+  color: #f4f4f5 !important;
+  color-scheme: dark;
+}
+
+body.app-dark .table th {
+  background: #27272a;
+  color: #e4e4e7;
+}
+
+body.app-dark .table td,
+body.app-dark .table th {
+  border-color: #3f3f46;
+}
+
+body.app-dark .table td {
+  color: #e4e4e7;
+}
+
+body.app-dark .table small,
+body.app-dark .table-muted {
+  color: #a1a1aa !important;
+}
+
+body.app-dark .table tr:hover td {
+  background: #29292d;
+}
+
+body.app-dark .stat-label,
+body.app-dark .stat-sub,
+body.app-dark .max-marks,
+body.app-dark .grades-state {
+  color: #a1a1aa;
+}
+
+body.app-dark .stat-value {
+  color: #f4f4f5;
+}
+
+body.app-dark .text-green {
+  color: #6ee7b7;
+}
+
+body.app-dark .text-amber {
+  color: #fcd34d;
+}
+
+body.app-dark .text-red,
+body.app-dark .grades-state-error {
+  color: #fca5a5;
+}
+
+body.app-dark .status-badge.normal {
+  background: #3f3f46;
+  color: #e4e4e7;
+}
+
+body.app-dark .status-badge.promoted {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+body.app-dark .status-badge.repeating {
+  background: #422006;
+  color: #fcd34d;
+}
+
+body.app-dark .status-badge.transferred {
+  background: rgba(14, 165, 233, 0.18);
+  color: #7dd3fc;
+}
+
+body.app-dark .status-badge.graduated {
+  background: rgba(168, 85, 247, 0.18);
+  color: #d8b4fe;
+}
+
+body.app-dark .grades-filter-button {
+  background: #2563eb;
+  color: #fff;
+}
+
+body.app-dark .grades-filter-button:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
 @media (max-width: 768px) {
   .toolbar {
     flex-direction: column;
@@ -165,25 +272,16 @@
     width: 100%;
   }
 
-  .grades-filter-actions {
-    margin-top: -12px;
-  }
-
-  .grades-filter-button {
-    width: 100%;
-  }
-
   .card {
     padding: 16px;
   }
 
-  .back-grades-btn,
   .toolbar select,
   .card,
   .toolbar,
   .status-badge,
   .status-display {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 }
 
@@ -227,10 +325,14 @@
   margin-bottom: 24px;
 }
 
+.stats-grid > .stat-card:last-child {
+  grid-column: 1 / -1;
+}
+
 .stat-card {
   background: #ffffff;
   border: 0.5px solid rgb(219, 215, 215);
-  border-radius: 10px;
+  border-radius: 20px;
   padding: 16px 18px;
   display: flex;
   flex-direction: column;
