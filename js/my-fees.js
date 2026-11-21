@@ -1,4 +1,7 @@
 let cachedStudentFees = [];
+let cachedStudentTransactions = [];
+const MY_FEES_CACHE_PAGE = "my-fees";
+let feeAccessLoading = false;
 
 function getSemesterNumber(termName) {
   const name = String(termName || "");
@@ -14,89 +17,88 @@ function getOneRelation(value) {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const client = window.supabaseClient || supabaseClient;
-  if (!client) {
-    console.error("Supabase client not initialized.");
-    return;
-  }
-
-  const {
-    data: { session },
-    error: sessionError,
-  } = await client.auth.getSession();
-  if (sessionError || !session) {
-    window.location.href = "login.html";
-    return;
-  }
-
-  const userId = session.user.id;
-  const historyIndex = await window.getStudentTransferHistoryIndex(client);
-  const feesContainer = document.getElementById("studentFeesContainer");
-  const txContainer = document.getElementById("paymentTransactionsContainer");
-
-  if (feesContainer) {
-    feesContainer.innerHTML = '<div class="empty-state">Loading your fee filters...</div>';
-  }
-  if (txContainer) {
-    txContainer.innerHTML = '<div class="empty-state">Payment history will appear with your selected fee records.</div>';
-  }
-
-  const filtersLoaded = await populateFilterDropdowns(userId, client, historyIndex);
-  if (!filtersLoaded) return;
-
-  if (!cachedStudentFees.length) {
-    if (feesContainer) {
-      feesContainer.innerHTML = '<div class="empty-state">No fee records found.</div>';
-    }
-    if (txContainer) {
-      txContainer.innerHTML = '<div class="empty-state">No payment transaction records found.</div>';
-    }
-    return;
-  }
-
-  if (feesContainer) {
-    feesContainer.innerHTML = '<div class="empty-state">Choose your filters, then select View fees.</div>';
-  }
-
-  document
-    .getElementById("applyStudentFeeFilters")
-    ?.addEventListener("click", () => {
-      const filters = {
-        academic_year_id: document.getElementById("filterAcademicYear")?.value || "",
-        class_id: document.getElementById("filterClass")?.value || "",
-        semester_number: document.getElementById("filterTerm")?.value || "",
-      };
-      loadStudentFeesAndHistory(userId, filters, historyIndex);
+function cachedFeesMatchSession(cachedUserId) {
+  if (!cachedUserId) return false;
+  try {
+    return Object.keys(localStorage).some((key) => {
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
+      try {
+        return JSON.parse(localStorage.getItem(key) || "null")?.user?.id === cachedUserId;
+      } catch {
+        return false;
+      }
     });
+  } catch {
+    return false;
+  }
+}
+
+function restoreCachedStudentFees() {
+  const cached = window.studentPageCache?.readLast(MY_FEES_CACHE_PAGE);
+  if (
+    !cached?.data ||
+    !Array.isArray(cached.data.fees) ||
+    !Array.isArray(cached.data.transactions) ||
+    !cachedFeesMatchSession(cached.userId)
+  ) return false;
+
+  cachedStudentFees = cached.data.fees;
+  cachedStudentTransactions = cached.data.transactions;
+  setupFeeFilters();
+  renderSelectedStudentFees();
+  return true;
+}
+
+function setFeeRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshStudentFees");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.setAttribute("aria-busy", String(isRefreshing));
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  restoreCachedStudentFees();
+  document.getElementById("refreshStudentFees")?.addEventListener("click", () => {
+    void loadStudentFees({ refresh: true });
+  });
+  ["filterAcademicYear", "filterClass", "filterTerm"].forEach((id) => {
+    document.getElementById(id)?.addEventListener("change", renderSelectedStudentFees);
+  });
+  void loadStudentFees();
 });
 
-async function populateFilterDropdowns(authUserId, client, historyIndex) {
-  const feesContainer = document.getElementById("studentFeesContainer");
+async function loadStudentFees(options = {}) {
+  if (feeAccessLoading) return;
+  feeAccessLoading = true;
+  const refresh = options.refresh === true;
+  if (refresh) setFeeRefreshState(true);
+  const client = window.supabaseClient;
 
   try {
-    const { data: fees, error } = await client
+    if (!client) throw new Error("The database client is unavailable.");
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError) throw authError;
+    if (!user) {
+      window.studentPageCache?.clearLast(MY_FEES_CACHE_PAGE);
+      window.location.href = "login.html";
+      return;
+    }
+
+    if (refresh) window.studentTransferHistoryIndex = null;
+    const historyIndex = await window.getStudentTransferHistoryIndex(client);
+    const { data: fees, error: feesError } = await client
       .from("student_fees")
       .select(`
-        id,
-        currency_code,
-        total_fees,
-        total_paid,
-        balance,
-        status,
-        fee_breakdown,
-        created_at,
-        class_id,
-        academic_year_id,
-        term_id,
-        academic_years ( id, year_label ),
-        classes ( id, name ),
-        terms ( id, name )
+        id, currency_code, total_fees, total_paid, balance, status,
+        fee_breakdown, created_at, class_id, academic_year_id, term_id,
+        academic_years ( id, year_label ), classes ( id, name ), terms ( id, name )
       `)
-      .eq("student_id", authUserId)
+      .eq("student_id", user.id)
       .order("created_at", { ascending: false });
-
-    if (error) throw error;
+    if (feesError) throw feesError;
 
     const historicalFeeIds = historyIndex?.recordIds?.fee || new Set();
     cachedStudentFees = (fees || [])
@@ -108,42 +110,63 @@ async function populateFilterDropdowns(authUserId, client, historyIndex) {
         terms: getOneRelation(fee.terms),
       }));
 
-    const years = new Map();
-    const classes = new Map();
+    const feeIds = cachedStudentFees.map((fee) => fee.id);
+    if (feeIds.length) {
+      const { data: transactions, error: txError } = await client
+        .from("payment_transactions")
+        .select(`
+          id, amount, payment_method, reference_number, notes, created_at,
+          student_fee_id,
+          payment_allocations ( id, item_name, amount, fee_item_id )
+        `)
+        .eq("student_id", user.id)
+        .in("student_fee_id", feeIds)
+        .order("created_at", { ascending: false });
+      if (txError) throw txError;
+      cachedStudentTransactions = transactions || [];
+    } else {
+      cachedStudentTransactions = [];
+    }
 
-    cachedStudentFees.forEach((fee) => {
-      if (fee.academic_years?.id) {
-        years.set(String(fee.academic_years.id), fee.academic_years.year_label || "Academic year");
-      }
-      if (fee.classes?.id) {
-        classes.set(String(fee.classes.id), fee.classes.name || "Class");
-      }
+    setupFeeFilters();
+    window.studentPageCache?.write(MY_FEES_CACHE_PAGE, user.id, {
+      fees: cachedStudentFees,
+      transactions: cachedStudentTransactions,
     });
-
-    fillFeeFilter(document.getElementById("filterAcademicYear"), "All Academic Years", years);
-    fillFeeFilter(document.getElementById("filterClass"), "All Classes", classes);
-
-    const termSelect = document.getElementById("filterTerm");
-    if (termSelect) {
-      termSelect.innerHTML = `
-        <option value="">All Semesters</option>
-        <option value="1">1st Semester</option>
-        <option value="2">2nd Semester</option>`;
-    }
-    return true;
+    renderSelectedStudentFees();
   } catch (error) {
-    console.error("Error loading fee filters:", error);
-    if (feesContainer) {
-      feesContainer.innerHTML = `
-        <div class="empty-state" style="color:#b42318;">
-          Failed to load fee filters: ${escapeHTML(error.message || "Unknown error")}
-        </div>`;
-    }
-    return false;
+    console.error("Could not load student fees:", error);
+    window.studentPageCache?.clearLast(MY_FEES_CACHE_PAGE);
+    const feesContainer = document.getElementById("studentFeesContainer");
+    const txContainer = document.getElementById("paymentTransactionsContainer");
+    if (feesContainer) feesContainer.innerHTML = '<div class="empty-state">Fees could not be loaded. Refresh the page or contact your school administrator.</div>';
+    if (txContainer) txContainer.innerHTML = '<div class="empty-state">Payment history could not be loaded.</div>';
+  } finally {
+    feeAccessLoading = false;
+    if (refresh) setFeeRefreshState(false);
   }
 }
 
-function fillFeeFilter(select, placeholder, values) {
+function setupFeeFilters() {
+  const selectedYear = document.getElementById("filterAcademicYear")?.value || "";
+  const selectedClass = document.getElementById("filterClass")?.value || "";
+  const years = new Map();
+  const classes = new Map();
+  cachedStudentFees.forEach((fee) => {
+    if (fee.academic_years?.id) years.set(String(fee.academic_years.id), fee.academic_years.year_label || "Academic year");
+    if (fee.classes?.id) classes.set(String(fee.classes.id), fee.classes.name || "Class");
+  });
+  fillFeeFilter(document.getElementById("filterAcademicYear"), "All Academic Years", years, selectedYear);
+  fillFeeFilter(document.getElementById("filterClass"), "All Classes", classes, selectedClass);
+  const termSelect = document.getElementById("filterTerm");
+  if (termSelect) {
+    const selectedTerm = termSelect.value;
+    termSelect.innerHTML = '<option value="">All Semesters</option><option value="1">1st Semester</option><option value="2">2nd Semester</option>';
+    termSelect.value = selectedTerm;
+  }
+}
+
+function fillFeeFilter(select, placeholder, values, selectedValue = "") {
   if (!select) return;
 
   select.replaceChildren();
@@ -160,6 +183,7 @@ function fillFeeFilter(select, placeholder, values) {
       option.textContent = label;
       select.appendChild(option);
     });
+  if (selectedValue && values.has(selectedValue)) select.value = selectedValue;
 }
 function renderFeesTable(fees, container) {
   let html = `
@@ -230,156 +254,69 @@ function renderFeesTable(fees, container) {
   container.innerHTML = html;
 }
 
-async function loadStudentFeesAndHistory(authUserId, filters = {}, historyIndex) {
+function renderSelectedStudentFees() {
   const feesContainer = document.getElementById("studentFeesContainer");
   const txContainer = document.getElementById("paymentTransactionsContainer");
-  const applyButton = document.getElementById("applyStudentFeeFilters");
   if (!feesContainer || !txContainer) return;
 
-  const originalButtonContent = applyButton?.innerHTML;
-  if (applyButton) {
-    applyButton.disabled = true;
-    applyButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Loading...';
+  const filters = {
+    academic_year_id: document.getElementById("filterAcademicYear")?.value || "",
+    class_id: document.getElementById("filterClass")?.value || "",
+    semester_number: document.getElementById("filterTerm")?.value || "",
+  };
+  const semesterNumber = Number(filters.semester_number || 0);
+  const fees = cachedStudentFees.filter((fee) =>
+    (!filters.academic_year_id || String(fee.academic_year_id) === String(filters.academic_year_id)) &&
+    (!filters.class_id || String(fee.class_id) === String(filters.class_id)) &&
+    (!semesterNumber || getSemesterNumber(fee.terms?.name) === semesterNumber)
+  );
+
+  if (!cachedStudentFees.length) {
+    feesContainer.innerHTML = '<div class="empty-state">No fee records found.</div>';
+    txContainer.innerHTML = '<div class="empty-state">No payment transaction records found.</div>';
+    return;
   }
-  feesContainer.innerHTML = '<div class="empty-state">Loading fee records...</div>';
-  txContainer.innerHTML = '<div class="empty-state">Loading payment history...</div>';
 
-  try {
-    const fees = cachedStudentFees.filter((fee) => {
-      const semesterNumber = Number(filters.semester_number || 0);
-      return (
-        (!filters.academic_year_id || String(fee.academic_year_id) === String(filters.academic_year_id)) &&
-        (!filters.class_id || String(fee.class_id) === String(filters.class_id)) &&
-        (!semesterNumber || getSemesterNumber(fee.terms?.name) === semesterNumber)
-      );
-    });
-
-    if (!fees.length) {
-      feesContainer.innerHTML = '<div class="empty-state">No fee records match the selected filters.</div>';
-      txContainer.innerHTML = '<div class="empty-state">No payment transaction records match the selected fees.</div>';
-      return;
-    }
-
-    renderFeesTable(fees, feesContainer);
-
-    const client = window.supabaseClient || supabaseClient;
-    await loadFilteredTransactions(authUserId, fees, txContainer, client);
-  } catch (error) {
-    console.error("Unexpected error loading fees and payment history:", error);
-    feesContainer.innerHTML = `
-      <div class="empty-state" style="color:#b42318;">
-        Failed to load fee records: ${escapeHTML(error.message || "Unknown error")}
-      </div>`;
-    txContainer.innerHTML = '<div class="empty-state">Could not load payment history.</div>';
-  } finally {
-    if (applyButton) {
-      applyButton.disabled = false;
-      applyButton.innerHTML = originalButtonContent || '<i class="fa-solid fa-filter" aria-hidden="true"></i> View fees';
-    }
+  if (!fees.length) {
+    feesContainer.innerHTML = '<div class="empty-state">No fee records match the selected filters.</div>';
+    txContainer.innerHTML = '<div class="empty-state">No payment transaction records match the selected fees.</div>';
+    return;
   }
+
+  renderFeesTable(fees, feesContainer);
+  renderStudentTransactions(fees, txContainer);
 }
-async function loadFilteredTransactions(
-  authUserId,
-  fees,
-  txContainer,
-  client,
-) {
-  try {
-    const feeIds = fees.map((fee) => fee.id);
-    const currencyByFeeId = new Map(
-      fees.map((fee) => [String(fee.id), fee.currency_code]),
-    );
 
-    const { data: transactions, error } = await client
-      .from("payment_transactions")
-      .select(
-        `
-        id,
-        amount,
-        payment_method,
-        reference_number,
-        notes,
-        created_at,
-        student_fee_id,
-        payment_allocations (
-          id,
-          item_name,
-          amount,
-          fee_item_id
-        )
-      `,
-      )
-      .eq("student_id", authUserId)
-      .in("student_fee_id", feeIds)
-      .order("created_at", { ascending: false });
+function renderStudentTransactions(fees, txContainer) {
+  const feeIds = new Set(fees.map((fee) => String(fee.id)));
+  const currencyByFeeId = new Map(fees.map((fee) => [String(fee.id), fee.currency_code]));
+  const transactions = cachedStudentTransactions.filter((tx) => feeIds.has(String(tx.student_fee_id)));
 
-    if (error) {
-      txContainer.innerHTML = `<div class="empty-state" style="color: var(--danger-color);">Failed to load transaction history.</div>`;
-      return;
-    }
-
-    if (!transactions || transactions.length === 0) {
-      txContainer.innerHTML = `
-        <div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem; text-align: center; color: #64748b;">
-          <i class="fa-solid fa-receipt" style="font-size: 5rem; margin-bottom: 1rem; color: #cbd5e1;"></i>
-          <span style="font-size: 1.1rem; font-weight: 600; color: #334155;">No payment transaction records found for this period.</span>
-        </div>`;
-      return;
-    }
-
-    let html = `
-      <div class="table-responsive">
-        <table>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Payment Method</th>
-              <th>Reference No.</th>
-              <th>Allocated Items</th>
-              <th>Total Paid</th>
-            </tr>
-          </thead>
-          <tbody>
-    `;
-
-    transactions.forEach((tx) => {
-      const dateStr = new Date(tx.created_at).toLocaleDateString("en-US", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-      });
-      const paymentMethod = tx.payment_method || "Cash / Other";
-      const referenceNum = tx.reference_number || "-";
-
-      let allocationsHtml = `<span style="color: var(--text-muted); font-style: italic;">General payment</span>`;
-      if (tx.payment_allocations && tx.payment_allocations.length > 0) {
-        allocationsHtml = `<ul class="breakdown-list" style="margin:0; padding-left:15px;">`;
-        tx.payment_allocations.forEach((alloc) => {
-          const name = alloc.item_name || "Fee Item";
-          const amt = alloc.amount || 0;
-          allocationsHtml += `<li>${escapeHTML(name)}: <strong>${window.formatSchoolMoney(amt, currencyByFeeId.get(String(tx.student_fee_id)))}</strong></li>`;
-        });
-        allocationsHtml += `</ul>`;
-      }
-
-      html += `
-        <tr>
-          <td>${dateStr}</td>
-          <td>${paymentMethod}</td>
-          <td><code>${referenceNum}</code></td>
-          <td>${allocationsHtml}</td>
-          <td class="amount-paid">${window.formatSchoolMoney(tx.amount, currencyByFeeId.get(String(tx.student_fee_id)))}</td>
-        </tr>
-      `;
-    });
-
-    html += `</tbody></table></div>`;
-    txContainer.innerHTML = html;
-  } catch (err) {
-    console.error("Error loading transactions:", err);
-    txContainer.innerHTML = `
-      <div class="empty-state" style="color: var(--danger-color);">
-        Failed to load transaction history.
-      </div>`;
+  if (!transactions.length) {
+    txContainer.innerHTML = '<div class="empty-state">No payment transaction records found for this period.</div>';
+    return;
   }
+
+  const rows = transactions.map((tx) => {
+    const dateStr = new Date(tx.created_at).toLocaleDateString("en-US", {
+      year: "numeric", month: "short", day: "numeric",
+    });
+    const allocations = Array.isArray(tx.payment_allocations) ? tx.payment_allocations : [];
+    const allocationsHtml = allocations.length
+      ? `<ul class="breakdown-list">${allocations.map((allocation) =>
+          `<li>${escapeHTML(allocation.item_name || "Fee Item")}: <strong>${window.formatSchoolMoney(allocation.amount || 0, currencyByFeeId.get(String(tx.student_fee_id)))}</strong></li>`,
+        ).join("")}</ul>`
+      : '<span class="general-payment">General payment</span>';
+    return `<tr>
+      <td>${escapeHTML(dateStr)}</td>
+      <td>${escapeHTML(tx.payment_method || "Cash / Other")}</td>
+      <td><code>${escapeHTML(tx.reference_number || "-")}</code></td>
+      <td>${allocationsHtml}</td>
+      <td class="amount-paid">${window.formatSchoolMoney(tx.amount, currencyByFeeId.get(String(tx.student_fee_id)))}</td>
+    </tr>`;
+  }).join("");
+
+  txContainer.innerHTML = `<div class="table-responsive"><table>
+    <thead><tr><th>Date</th><th>Payment Method</th><th>Reference No.</th><th>Allocated Items</th><th>Total Paid</th></tr></thead>
+    <tbody>${rows}</tbody></table></div>`;
 }

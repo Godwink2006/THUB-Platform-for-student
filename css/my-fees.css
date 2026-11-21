@@ -34,36 +34,39 @@
   width: 100%;
 }
 
-.fees-filter-actions {
-  display: flex;
-  justify-content: flex-end;
-  margin: -12px 0 24px;
-}
-
-.fees-filter-button {
+.fees-refresh-button {
   display: inline-flex;
+  width: 100%;
+  min-height: 44px;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 9px 16px;
-  border: 0;
-  border-radius: 8px;
-  background: #2563eb;
-  color: #ffffff;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
-.fees-filter-button:hover {
-  background: #1d4ed8;
+.fees-refresh-button:hover:not(:disabled) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
 }
 
-.fees-filter-button:disabled {
-  opacity: 0.65;
+.fees-refresh-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.fees-refresh-button:disabled {
   cursor: wait;
+  opacity: 0.75;
 }
 
 body {
@@ -79,25 +82,6 @@ body {
 
 .header-section {
   margin-bottom: 24px;
-}
-
-.back-btn {
-  background: #0f172a;
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-weight: 500;
-  margin-bottom: 16px;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  text-decoration: none;
-  font-size: 14px;
-}
-
-.back-btn:hover {
-  opacity: 0.9;
 }
 
 h1 {
@@ -226,13 +210,149 @@ select {
 
 @media (max-width: 768px) {
   .badge,
-  .back-btn,
   .card,
   .toolbar {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
-  .fees-filter-button {
-    width: 100%;
+}
+
+.container {
+  width: min(100%, 1280px);
+  padding: 24px 20px 100px;
+}
+
+.header-section {
+  margin-bottom: 1.25rem;
+}
+
+h1 {
+  color: #172033;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 650;
+}
+
+.toolbar {
+  margin-bottom: 1.25rem;
+  padding: 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04);
+}
+
+.filter-group {
+  min-width: 0;
+}
+
+.toolbar select,
+.toolbar input,
+.toolbar .filter-dropdown {
+  min-height: 44px;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+}
+
+.card {
+  padding: clamp(1rem, 2.5vw, 1.5rem);
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.card h2 {
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-responsive {
+  border-radius: 20px;
+}
+
+body.app-dark h1,
+body.app-dark h2 {
+  color: #f8fafc;
+}
+
+body.app-dark .toolbar,
+body.app-dark .card {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+body.app-dark .toolbar select,
+body.app-dark .toolbar input,
+body.app-dark .toolbar .filter-dropdown {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #f4f4f5;
+  color-scheme: dark;
+}
+
+body.app-dark .fees-refresh-button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .fees-refresh-button:hover:not(:disabled) {
+  border-color: #52525b;
+  background: #27272a;
+  color: #fff;
+}
+
+body.app-dark .card h2 {
+  border-color: #3f3f46;
+}
+
+body.app-dark th {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #e4e4e7;
+}
+
+body.app-dark td {
+  border-color: #3f3f46;
+  color: #e4e4e7;
+}
+
+body.app-dark .breakdown-list,
+body.app-dark .empty-state,
+body.app-dark .general-payment {
+  color: #a1a1aa;
+}
+
+body.app-dark .badge.paid {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+body.app-dark .badge.unpaid {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+body.app-dark .badge.partial,
+body.app-dark .badge.Partial {
+  background: #422006;
+  color: #fcd34d;
+}
+
+body.app-dark .amount-balance {
+  color: #fca5a5;
+}
+
+body.app-dark .amount-paid {
+  color: #6ee7b7;
+}
+
+@media (max-width: 600px) {
+  .container {
+    padding: 20px 16px 100px;
+  }
+
+  .toolbar {
+    gap: 10px;
+    padding: 12px;
   }
 }
