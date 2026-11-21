@@ -43,23 +43,12 @@
   <body class="timetable-access-checking">
     <div id="timetableAccessLoading" class="timetable-access-loading" role="status" aria-live="polite">
       <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
-      <span>Loading...</span>
+      <span>Loading your timetable…</span>
     </div>
     <div class="timetable-container">
       <header class="timetable-header">
-        <div class="header-titles">
-          <div class="topbar">
-            <h1 id="timetableTitle">My Timetable</h1>
-            <p id="timetableSubtitle" class="text-muted"></p>
-          </div>
-
-          <button
-            onclick="window.location.href = 'academics.html'"
-            class="back-academic-settings-btn"
-          >
-            <i class="fa-solid fa-chevron-left"></i>
-            Back
-          </button>
+        <div class="topbar">
+          <h1 id="timetableTitle">My Timetable</h1>
         </div>
       </header>
 
@@ -74,13 +63,13 @@
       <div id="timetableContent">
       <div class="topbar-filters">
         <div>
-          <select id="filterTimetableDays" class="form-control">
+          <select id="filterTimetableDays" class="form-control" aria-label="Filter timetable by day">
             <option value="">All Days</option>
           </select>
         </div>
-        <button id="applyMyTimetableFilters" type="button" class="my-timetable-filter-button">
-          <i class="fa-solid fa-filter" aria-hidden="true"></i>
-          View timetable
+        <button id="refreshMyTimetable" class="timetable-refresh-button" type="button" aria-label="Refresh timetable">
+          <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+          <span>Refresh</span>
         </button>
       </div>
 
@@ -122,6 +111,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/supabase.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/student-page-cache.js"></script>
     <script src="/js/my-timetable.js"></script>
     <script src="/js/app-icons.js"></script>
   </body>

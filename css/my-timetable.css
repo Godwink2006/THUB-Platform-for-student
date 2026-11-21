@@ -1,19 +1,4 @@
 
-
-.back-academic-settings-btn {
-  width: auto;
-  height: 30px;
-  padding: 10px;
-  display: flex;
-  align-items: center;
-  cursor: pointer;
-  margin-top: 5px;
-  justify-content: space-between;
-  color: #ffff;
-  background: #1f2937;
-  border: 0.5px solid rgb(219, 215, 215);
-}
-
 * {
   margin: 0;
   padding: 0;
@@ -243,36 +228,59 @@ body.timetable-access-checking .timetable-container {
   color: #6b7280;
 }
 
+.timetable-empty-state {
+  align-items: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 210px;
+  padding: 2.5rem 1.5rem;
+  text-align: center;
+}
+
+.timetable-empty-state i {
+  color: #94a3b8;
+  font-size: 3.25rem;
+  margin-bottom: 0.85rem;
+}
+
+.timetable-empty-state span,
+.timetable-empty-state p {
+  color: #475569;
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.6;
+}
+
+.timetable-page-empty {
+  grid-column: 1 / -1;
+  min-height: 280px;
+}
+
 @media (max-width: 768px) {
   .meta-banner {
     flex-direction: column;
     gap: 10px;
     padding: 10px;
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .meta-item i {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .day-card,
-  .back-academic-settings-btn,
-  .topbar-filters .form-control,
-  .my-timetable-filter-button {
-    border-radius: 10px;
-  }
-
-  .my-timetable-filter-button {
-    width: 100%;
+  .topbar-filters .form-control {
+    border-radius: 20px;
   }
 
   .lesson-card-item {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .day-card-header .lesson-count,
   .timetable-page-notice {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 }
 
@@ -290,14 +298,15 @@ body.timetable-access-checking .timetable-container {
 
 .topbar-filters {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 12px;
   margin-bottom: 10px;
 }
 
 .topbar-filters > div {
-  flex: 1 1 180px;
+  flex: 1 1 0;
+  min-width: 0;
 }
 
 .topbar-filters .form-control {
@@ -308,23 +317,188 @@ body.timetable-access-checking .timetable-container {
   font-size: 0.9rem;
 }
 
-.my-timetable-filter-button {
-  align-items: center;
-  background: #2563eb;
-  border: 0;
-  border-radius: 8px;
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
-  font: inherit;
-  font-size: 0.875rem;
-  font-weight: 600;
-  gap: 8px;
-  justify-content: center;
-  min-height: 40px;
-  padding: 9px 16px;
+.timetable-container {
+  width: min(100%, 1280px);
+  padding: 24px 20px 100px;
 }
 
-.my-timetable-filter-button:hover {
-  background: #1d4ed8;
+.timetable-header {
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.timetable-header .topbar h1 {
+  color: #172033;
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  font-weight: 650;
+}
+
+.timetable-refresh-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  padding: 0 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.topbar-filters {
+  margin-bottom: 1.25rem;
+}
+
+.topbar-filters .form-control {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+}
+
+.topbar-filters .timetable-refresh-button {
+  flex: 1 1 0;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+}
+
+.meta-banner,
+.day-card {
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+}
+
+.meta-banner {
+  margin-bottom: 1.25rem;
+}
+
+.day-card-header {
+  background: #f8fafc;
+}
+
+.lesson-card-item {
+  border: 1px solid #e2e8f0;
+  border-radius: 20px;
+}
+
+.timetable-access-loading {
+  background: #f8fafc;
+}
+
+body.app-dark .timetable-access-loading {
+  background: #111;
+  color: #cbd5e1;
+}
+
+body.app-dark .timetable-access-loading i {
+  color: #93c5fd;
+}
+
+body.app-dark .timetable-container {
+  color: #e4e4e7;
+}
+
+body.app-dark .timetable-header .topbar h1 {
+  color: #f8fafc;
+}
+
+body.app-dark .text-muted,
+body.app-dark .lesson-time {
+  color: #a1a1aa;
+}
+
+body.app-dark .timetable-refresh-button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .topbar-filters .form-control {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #f4f4f5;
+}
+
+body.app-dark .timetable-container .meta-banner,
+body.app-dark .timetable-container .day-card {
+  border-color: #3f3f46;
+  background: #1b1d22;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.24);
+}
+
+body.app-dark .meta-item i {
+  border-radius: 12px;
+  background: #666;
+  color: #999;
+}
+
+body.app-dark .meta-label {
+  color: #a1a1aa;
+}
+
+body.app-dark .meta-item strong,
+body.app-dark .day-card-header,
+body.app-dark .lesson-subject {
+  color: #f8fafc;
+}
+
+body.app-dark .timetable-container .day-card .day-card-header {
+  background: #24262c;
+  color: #f4f4f5;
+}
+
+body.app-dark .day-card-header .lesson-count {
+  background: #444;
+  color: white;
+}
+
+body.app-dark .timetable-container .lesson-card-item {
+  border-color: #3d414a;
+  background: #22252b;
+}
+
+body.app-dark .lesson-teacher,
+body.app-dark .timetable-empty-state span,
+body.app-dark .timetable-empty-state p {
+  color: #cbd5e1;
+}
+
+body.app-dark .timetable-empty-state i {
+  color: #64748b;
+}
+
+body.app-dark .timetable-page-notice {
+  border-color: #1e40af;
+  background: #172554;
+  color: #dbeafe;
+}
+
+body.app-dark .timetable-page-notice[data-type="graduated"] {
+  border-color: #854d0e;
+  background: #422006;
+  color: #fde68a;
+}
+
+@media (max-width: 600px) {
+  .timetable-container {
+    padding: 20px 16px 100px;
+  }
+
+  .timetable-header {
+    align-items: flex-start;
+  }
+
+  .timetable-refresh-button {
+    min-height: 44px;
+    padding: 0 0.8rem;
+  }
 }

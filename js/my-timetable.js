@@ -1,13 +1,87 @@
-document.addEventListener("DOMContentLoaded", async () => {
-  await initMyTimetable();
+const MY_TIMETABLE_CACHE_PAGE = "my-timetable";
+let allCurrentLessons = [];
+let timetableAccessLoading = false;
+let timetableCacheRestored = false;
+let cachedTimetableData = null;
 
-  document
-    .getElementById("printTimetableBtn")
-    ?.addEventListener("click", () => {
-      window.print();
+function cachedTimetableMatchesSession(cachedUserId) {
+  if (!cachedUserId) return false;
+  try {
+    return Object.keys(localStorage).some((key) => {
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
+      try {
+        const session = JSON.parse(localStorage.getItem(key) || "null");
+        return session?.user?.id === cachedUserId;
+      } catch {
+        return false;
+      }
     });
+  } catch {
+    return false;
+  }
+}
+
+function renderTimetableData(data) {
+  allCurrentLessons = Array.isArray(data.lessons) ? data.lessons : [];
+  const className = document.getElementById("classNameDisplay");
+  const teacher = document.getElementById("classTeacherDisplay");
+  const breaks = document.getElementById("classBreaksDisplay");
+  if (className) className.textContent = data.className || "--";
+  if (teacher) teacher.textContent = data.classTeacher || "Not Assigned";
+  if (breaks) breaks.textContent = data.breaks || "None";
+  document.getElementById("classMetaBanner")?.classList.remove("hidden");
+  document.getElementById("timetableContent")?.removeAttribute("hidden");
+  const notice = document.getElementById("timetablePageNotice");
+  if (notice) notice.hidden = true;
+  setupTimetableFilters();
+  applyTimetableFilters();
+}
+
+function restoreCachedTimetable() {
+  const cached = window.studentPageCache?.readLast(MY_TIMETABLE_CACHE_PAGE);
+  if (!cached?.data || !Array.isArray(cached.data.lessons) || !cachedTimetableMatchesSession(cached.userId)) {
+    return false;
+  }
+
+  cachedTimetableData = { ...cached.data, studentId: cached.userId };
+  timetableCacheRestored = true;
+  renderTimetableData(cachedTimetableData);
+  document.body.classList.remove("timetable-access-checking");
+  const loading = document.getElementById("timetableAccessLoading");
+  if (loading) loading.hidden = true;
+  return true;
+}
+
+function setTimetableRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshMyTimetable");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.setAttribute("aria-busy", String(isRefreshing));
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+function showTimetableLoading() {
+  document.body.classList.add("timetable-access-checking");
+  const loading = document.getElementById("timetableAccessLoading");
+  if (loading) loading.hidden = false;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  restoreCachedTimetable();
+  document.getElementById("refreshMyTimetable")?.addEventListener("click", () => {
+    void initMyTimetable({ forceRefresh: true });
+  });
+  void initMyTimetable();
 });
-async function initMyTimetable() {
+
+async function initMyTimetable(options = {}) {
+  if (timetableAccessLoading) return;
+  const forceRefresh = options.forceRefresh === true;
+  timetableAccessLoading = true;
+  if (forceRefresh) setTimetableRefreshState(true);
+
   try {
     const {
       data: { user },
@@ -15,6 +89,8 @@ async function initMyTimetable() {
     } = await supabaseClient.auth.getUser();
 
     if (authError || !user) {
+      window.studentPageCache?.clearLast(MY_TIMETABLE_CACHE_PAGE);
+      timetableCacheRestored = false;
       renderEmptyState("User session not found. Please log in.");
       return;
     }
@@ -50,6 +126,8 @@ async function initMyTimetable() {
       );
 
       if (hasGraduatedEnrollment) {
+        window.studentPageCache?.clearLast(MY_TIMETABLE_CACHE_PAGE);
+        timetableCacheRestored = false;
         showGraduatedTimetableNotice();
         return;
       }
@@ -62,27 +140,83 @@ async function initMyTimetable() {
 
       if (studentErr || !studentData?.class_id) {
         console.error("Student fetch error:", studentErr);
+        window.studentPageCache?.clearLast(MY_TIMETABLE_CACHE_PAGE);
+        timetableCacheRestored = false;
         renderEmptyState("You are not currently assigned to a class.");
         return;
       }
 
-      await loadStudentClassSchedule(
-        studentData.class_id,
-        studentData.school_id || schoolId,
+      const studentSchoolId = studentData.school_id || schoolId;
+      const hasMatchingCache = Boolean(
+        timetableCacheRestored &&
+        cachedTimetableData?.studentId === user.id &&
+        cachedTimetableData?.schoolId === studentSchoolId &&
+        cachedTimetableData?.classId === studentData.class_id,
       );
 
-      await setupTimetableFilters(studentData.school_id || schoolId);
+      if (hasMatchingCache && !forceRefresh) {
+        setupTimetableFilters();
+        applyTimetableFilters();
+        return;
+      }
+
+      if (timetableCacheRestored && !hasMatchingCache) {
+        timetableCacheRestored = false;
+        cachedTimetableData = null;
+        allCurrentLessons = [];
+        document.getElementById("timetableCardsGrid")?.replaceChildren();
+        showTimetableLoading();
+      }
+
+      const scheduleLoaded = await loadStudentClassSchedule(
+        studentData.class_id,
+        studentSchoolId,
+      );
+      if (!scheduleLoaded) {
+        window.studentPageCache?.clearLast(MY_TIMETABLE_CACHE_PAGE);
+        timetableCacheRestored = false;
+        cachedTimetableData = null;
+        return;
+      }
+
+      setupTimetableFilters();
+      applyTimetableFilters();
+      saveTimetableCache(user.id, studentSchoolId, studentData.class_id);
     } else {
+      window.studentPageCache?.clearLast(MY_TIMETABLE_CACHE_PAGE);
+      timetableCacheRestored = false;
       renderEmptyState("Your account is not set up as a student.");
     }
   } catch (err) {
     console.error("Timetable Load Error:", err);
+    window.studentPageCache?.clearLast(MY_TIMETABLE_CACHE_PAGE);
+    timetableCacheRestored = false;
     renderEmptyState("Failed to load timetable schedule.");
   } finally {
+    timetableAccessLoading = false;
     document.body.classList.remove("timetable-access-checking");
     const loading = document.getElementById("timetableAccessLoading");
     if (loading) loading.hidden = true;
+    if (forceRefresh) setTimetableRefreshState(false);
   }
+}
+
+function saveTimetableCache(studentId, schoolId, classId) {
+  if (!studentId || !schoolId || !classId || !allCurrentLessons.length) return;
+  const className = document.getElementById("classNameDisplay")?.textContent || "--";
+  const classTeacher = document.getElementById("classTeacherDisplay")?.textContent || "Not Assigned";
+  const breaks = document.getElementById("classBreaksDisplay")?.textContent || "None";
+  cachedTimetableData = {
+    studentId,
+    schoolId,
+    classId,
+    className,
+    classTeacher,
+    breaks,
+    lessons: allCurrentLessons,
+  };
+  window.studentPageCache?.write(MY_TIMETABLE_CACHE_PAGE, studentId, cachedTimetableData);
+  timetableCacheRestored = true;
 }
 
 function showGraduatedTimetableNotice() {
@@ -109,8 +243,9 @@ function showGraduatedTimetableNotice() {
 async function loadStudentClassSchedule(classId, schoolId) {
   if (!classId) {
     renderEmptyState("You are not assigned to any class yet.");
-    return;
+    return false;
   }
+  allCurrentLessons = [];
 
   let classQuery = supabaseClient
     .from("classes")
@@ -173,7 +308,7 @@ async function loadStudentClassSchedule(classId, schoolId) {
   if (ttErr) {
     console.error("Timetable Fetch Error:", ttErr);
     renderEmptyState("Error loading timetable data.");
-    return;
+    return false;
   }
 
   const activeTimetable =
@@ -182,7 +317,7 @@ async function loadStudentClassSchedule(classId, schoolId) {
 
   if (!activeTimetable) {
     renderEmptyState("No timetable found.");
-    return;
+    return false;
   }
 
   const { data: rawLessons, error: lessonsErr } = await supabaseClient
@@ -193,7 +328,7 @@ async function loadStudentClassSchedule(classId, schoolId) {
   if (lessonsErr || !rawLessons || rawLessons.length === 0) {
     console.error("Lessons Fetch Error:", lessonsErr);
     renderEmptyState("No timetable found.");
-    return;
+    return false;
   }
 
   const [subjectsRes, periodsRes] = await Promise.all([
@@ -246,6 +381,7 @@ async function loadStudentClassSchedule(classId, schoolId) {
   }
 
   allCurrentLessons = formattedLessons;
+  return true;
 }
 
 function renderScheduleCards(lessons) {
@@ -288,10 +424,10 @@ function renderScheduleCards(lessons) {
           <div class="day-card-body">
             ${
               dayLessons.length === 0
-                ? `<div class="empty-state" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 5rem 2rem; min-height: 250px; text-align: center; color: #64748b;">
-  <i class="fa-solid fa-calendar-days" style="font-size: 5rem; margin-bottom: 1rem; color: #cbd5e1; display: block;"></i>
-  <span style="font-size: 1.1rem; font-weight: 600; color: #334155;">No classes scheduled</span>
-</div>`
+                ? `<div class="empty-state timetable-empty-state">
+                    <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+                    <span>No classes scheduled</span>
+                  </div>`
                 : dayLessons
                     .map(renderLessonCardItem)
                     .join("")
@@ -337,18 +473,20 @@ function renderLessonCardItem(item) {
 function renderEmptyState(message) {
   const container = document.getElementById("timetableCardsGrid");
   if (!container) return;
+  const notice = document.getElementById("timetablePageNotice");
+  if (notice) notice.hidden = true;
+  document.getElementById("classMetaBanner")?.classList.add("hidden");
+  document.getElementById("timetableContent")?.removeAttribute("hidden");
 
   container.innerHTML = `
-    <div class="empty-state">
-      <i class="fa-solid fa-calendar-xmark" style="font-size: 5.5rem; margin-bottom: 12px; color: #94a3b8;"></i>
+    <div class="empty-state timetable-empty-state timetable-page-empty">
+      <i class="fa-solid fa-calendar-xmark" aria-hidden="true"></i>
       <p>${escapeHTML(message)}</p>
     </div>
   `;
 }
 
-let allCurrentLessons = [];
-
-async function setupTimetableFilters(schoolId) {
+function setupTimetableFilters() {
   const daySelect = document.getElementById("filterTimetableDays");
 
   if (daySelect && daySelect.options.length <= 1) {
@@ -361,22 +499,7 @@ async function setupTimetableFilters(schoolId) {
       daySelect.appendChild(opt);
     });
   }
-  const applyButton = document.getElementById("applyMyTimetableFilters");
-  if (applyButton) {
-    applyButton.removeEventListener("click", applyTimetableFilters);
-    applyButton.addEventListener("click", applyTimetableFilters);
-  }
-
-  if (allCurrentLessons.length) {
-    const container = document.getElementById("timetableCardsGrid");
-    if (container) {
-      container.innerHTML = `
-        <div class="empty-state">
-          <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
-          <p>Choose a day, then select View timetable.</p>
-        </div>`;
-    }
-  }
+  if (daySelect) daySelect.onchange = applyTimetableFilters;
 }
 
 function applyTimetableFilters() {
