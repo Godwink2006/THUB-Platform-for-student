@@ -79,7 +79,7 @@ p.subtitle {
 }
 
 .toolbar .history-search-field {
-  flex: 1 1 100%;
+  grid-column: auto;
 }
 
 .toolbar input,
@@ -122,7 +122,7 @@ p.subtitle {
   min-height: 40px;
   padding: 9px 16px;
   border: 0;
-  border-radius: 8px;
+  border-radius: 20px;
   background: #2563eb;
   color: #ffffff;
   font: inherit;
@@ -133,7 +133,7 @@ p.subtitle {
 }
 
 .history-result-count {
-  flex: 1 1 100%;
+  grid-column: 1 / -1;
   margin: 0;
   color: #64748b;
   font-size: 13px;
@@ -405,20 +405,11 @@ p.subtitle {
   .toolbar select,
   .history-record summary,
   .status-pill {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .toolbar label {
     flex: 1 1 calc(50% - 6px);
-  }
-
-  .history-filter-actions,
-  .history-filter-button {
-    width: 100%;
-  }
-
-  .toolbar .history-search-field {
-    flex: 1 1 100%;
   }
 
   .transfer-card-heading {
@@ -455,8 +446,11 @@ p.subtitle {
     grid-template-columns: 1fr;
   }
 
-  .toolbar label {
-    flex: 1 1 100%;
+}
+
+@media (max-width: 420px) {
+  .toolbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
@@ -540,4 +534,288 @@ p.subtitle {
 .status-neutral {
   background: #f1f5f9;
   color: #475569;
+}
+
+.history-refresh-button {
+  display: inline-flex;
+  width: 100%;
+  min-height: 42px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.history-refresh-button:hover:not(:disabled) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.history-refresh-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.history-refresh-button:disabled {
+  cursor: wait;
+  opacity: 0.75;
+}
+
+.history-filter-actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+}
+
+body.app-dark .history-refresh-button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .history-refresh-button:hover:not(:disabled) {
+  border-color: #52525b;
+  background: #27272a;
+  color: #fff;
+}
+
+body.app-dark .container {
+  color: #e4e4e7;
+}
+
+body.app-dark h1,
+body.app-dark .transfer-card-heading h2,
+body.app-dark .history-group h3,
+body.app-dark .history-empty h2,
+body.app-dark .card-section h2 {
+  color: #f8fafc;
+}
+
+body.app-dark p.subtitle,
+body.app-dark .history-eyebrow,
+body.app-dark .transfer-source,
+body.app-dark .history-state,
+body.app-dark .history-empty p,
+body.app-dark .history-result-count {
+  color: #a1a1aa;
+}
+
+body.app-dark .toolbar,
+body.app-dark .history-empty,
+body.app-dark .transfer-history-card,
+body.app-dark .card-section {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .toolbar label {
+  color: #a1a1aa;
+}
+
+body.app-dark .toolbar input,
+body.app-dark .toolbar select {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #f4f4f5;
+  color-scheme: dark;
+}
+
+body.app-dark .toolbar input::placeholder {
+  color: #a1a1aa;
+}
+
+body.app-dark .history-date,
+body.app-dark .history-group h3 > span,
+body.app-dark .history-count-pill {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #cbd5e1;
+}
+
+body.app-dark .history-record-list,
+body.app-dark .history-record,
+body.app-dark .history-table th,
+body.app-dark .history-table td,
+body.app-dark .fee-item-row {
+  border-color: #3f3f46;
+}
+
+body.app-dark .history-record-title,
+body.app-dark .history-field dd,
+body.app-dark .history-table td {
+  color: #e4e4e7;
+}
+
+body.app-dark .history-record-summary,
+body.app-dark .history-record-date,
+body.app-dark .history-field dt {
+  color: #a1a1aa;
+}
+
+body.app-dark .history-record summary::before {
+  border-color: #52525b;
+  background: #27272a;
+  color: #e4e4e7;
+}
+
+body.app-dark .history-field,
+body.app-dark .history-table th,
+body.app-dark .fee-items h4 {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #cbd5e1;
+}
+
+body.app-dark .fee-items,
+body.app-dark .fee-item-row {
+  border-color: #3f3f46;
+  background: #22252b;
+  color: #e4e4e7;
+}
+
+body.app-dark .status-success {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+body.app-dark .status-danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+body.app-dark .status-warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+body.app-dark .status-neutral {
+  background: #3f3f46;
+  color: #e4e4e7;
+}
+
+body.app-dark .container {
+  color: #e4e4e7;
+}
+
+body.app-dark h1,
+body.app-dark .transfer-card-heading h2,
+body.app-dark .history-group h3,
+body.app-dark .history-empty h2,
+body.app-dark .card-section h2 {
+  color: #f8fafc;
+}
+
+body.app-dark p.subtitle,
+body.app-dark .history-eyebrow,
+body.app-dark .transfer-source,
+body.app-dark .history-state,
+body.app-dark .history-empty p,
+body.app-dark .history-result-count {
+  color: #a1a1aa;
+}
+
+body.app-dark .toolbar,
+body.app-dark .history-empty,
+body.app-dark .transfer-history-card,
+body.app-dark .card-section {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .toolbar label {
+  color: #a1a1aa;
+}
+
+body.app-dark .toolbar input,
+body.app-dark .toolbar select {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #f4f4f5;
+  color-scheme: dark;
+}
+
+body.app-dark .toolbar input::placeholder {
+  color: #a1a1aa;
+}
+
+body.app-dark .history-date,
+body.app-dark .history-group h3 > span,
+body.app-dark .history-count-pill {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #cbd5e1;
+}
+
+body.app-dark .history-record-list,
+body.app-dark .history-record,
+body.app-dark .history-table th,
+body.app-dark .history-table td,
+body.app-dark .fee-item-row {
+  border-color: #3f3f46;
+}
+
+body.app-dark .history-record-title,
+body.app-dark .history-field dd,
+body.app-dark .history-table td {
+  color: #e4e4e7;
+}
+
+body.app-dark .history-record-summary,
+body.app-dark .history-record-date,
+body.app-dark .history-field dt {
+  color: #a1a1aa;
+}
+
+body.app-dark .history-record summary::before {
+  border-color: #52525b;
+  background: #27272a;
+  color: #e4e4e7;
+}
+
+body.app-dark .history-field,
+body.app-dark .history-table th,
+body.app-dark .fee-items h4 {
+  border-color: #3f3f46;
+  background: #27272a;
+  color: #cbd5e1;
+}
+
+body.app-dark .fee-items,
+body.app-dark .fee-item-row {
+  border-color: #3f3f46;
+  background: #22252b;
+  color: #e4e4e7;
+}
+
+body.app-dark .status-success {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+body.app-dark .status-danger {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+body.app-dark .status-warning {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fcd34d;
+}
+
+body.app-dark .status-neutral {
+  background: #3f3f46;
+  color: #e4e4e7;
 }

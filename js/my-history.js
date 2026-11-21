@@ -1,7 +1,15 @@
 let myTransferHistory = [];
 let myHistoryRows = [];
+const MY_HISTORY_CACHE_PAGE = "my-history";
+let historyAccessLoading = false;
 
-document.addEventListener("DOMContentLoaded", loadMyTransferHistory);
+document.addEventListener("DOMContentLoaded", () => {
+  restoreCachedTransferHistory();
+  document.getElementById("refreshTransferHistory")?.addEventListener("click", () => {
+    void loadMyTransferHistory({ refresh: true });
+  });
+  void loadMyTransferHistory();
+});
 
 const HISTORY_TYPE_ORDER = ["attendance", "grade", "fee", "payment"];
 
@@ -12,33 +20,88 @@ const HISTORY_TYPE_LABELS = {
   payment: "Payments",
 };
 
-async function loadMyTransferHistory() {
+function cachedHistoryMatchesSession(cachedUserId) {
+  if (!cachedUserId) return false;
+  try {
+    return Object.keys(localStorage).some((key) => {
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
+      try {
+        const session = JSON.parse(localStorage.getItem(key) || "null");
+        return session?.user?.id === cachedUserId;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+function restoreCachedTransferHistory() {
+  const cached = window.studentPageCache?.readLast(MY_HISTORY_CACHE_PAGE);
+  if (
+    !cached?.data ||
+    !Array.isArray(cached.data.transfers) ||
+    !cachedHistoryMatchesSession(cached.userId)
+  ) return false;
+
+  myTransferHistory = cached.data.transfers;
+  myHistoryRows = flattenHistoryRows(myTransferHistory);
+  bindHistoryFilters();
+  buildHistoryFilters();
+  renderHistoryTables();
+  return true;
+}
+
+function setHistoryRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshTransferHistory");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.setAttribute("aria-busy", String(isRefreshing));
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+async function loadMyTransferHistory(options = {}) {
+  if (historyAccessLoading) return;
+  const refresh = options.refresh === true;
+  historyAccessLoading = true;
+  if (refresh) setHistoryRefreshState(true);
+
   const container = document.getElementById("transferHistoryList");
   const client = window.supabaseClient;
-  if (!container || !client) return;
+  if (!container || !client) {
+    historyAccessLoading = false;
+    if (refresh) setHistoryRefreshState(false);
+    return;
+  }
 
   try {
+    if (refresh) window.studentTransferHistoryIndex = null;
     const historyIndex = await window.getStudentTransferHistoryIndex(client);
-    myTransferHistory = await enrichStudentHistory(historyIndex.transfers.filter(
+    const userId = historyIndex.userId;
+    const transfers = historyIndex.transfers.filter(
       (transfer) => String(transfer.source_school_id || "").toLowerCase() !== historyIndex.currentSchoolId,
-    ), client);
-    const transfers = myTransferHistory;
-    if (transfers.length === 0) {
-      container.innerHTML = '<div class="history-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><h2>No transfer history yet</h2><p>Records from a previous school will appear here after a transfer is completed.</p></div>';
-      clearHistoryFilters();
-      return;
-    }
-
+    );
+    myTransferHistory = await enrichStudentHistory(transfers, client);
     myHistoryRows = flattenHistoryRows(myTransferHistory);
     bindHistoryFilters();
     buildHistoryFilters();
-    if (container) {
-      container.innerHTML = '<p class="history-state">Choose your filters, then select View history.</p>';
-    }
+    window.studentPageCache?.write(MY_HISTORY_CACHE_PAGE, userId, {
+      transfers: myTransferHistory,
+    });
+    renderHistoryTables();
   } catch (error) {
     console.error("Could not load transfer history:", error);
+    window.studentPageCache?.clearLast(MY_HISTORY_CACHE_PAGE);
+    myTransferHistory = [];
+    myHistoryRows = [];
     container.innerHTML =
       '<div class="history-empty history-error"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><h2>History could not be loaded</h2><p>Refresh the page or contact your school administrator.</p></div>';
+  } finally {
+    historyAccessLoading = false;
+    if (refresh) setHistoryRefreshState(false);
   }
 }
 
@@ -234,10 +297,19 @@ function getHistoryContext(snapshot, schoolId, schoolName) {
 }
 
 function bindHistoryFilters() {
-  const button = document.getElementById("applyHistoryFilters");
-  if (!button || button.dataset.bound === "1") return;
-  button.dataset.bound = "1";
-  button.addEventListener("click", renderHistoryTables);
+  [
+    "historySearch",
+    "historySchoolFilter",
+    "historyYearFilter",
+    "historyClassFilter",
+    "historyTermFilter",
+    "historyTypeFilter",
+  ].forEach((id) => {
+    const control = document.getElementById(id);
+    if (!control || control.dataset.bound === "1") return;
+    control.dataset.bound = "1";
+    control.addEventListener(id === "historySearch" ? "input" : "change", renderHistoryTables);
+  });
 }
 
 function clearHistoryFilters() {
@@ -373,6 +445,11 @@ function renderHistoryTables() {
   const count = document.getElementById("historyResultCount");
   if (count) {
     count.textContent = `${visible.length} record${visible.length === 1 ? "" : "s"}`;
+  }
+
+  if (myTransferHistory.length === 0) {
+    container.innerHTML = '<div class="history-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><h2>No transfer history yet</h2><p>Records from a previous school will appear here after a transfer is completed.</p></div>';
+    return;
   }
 
   if (!visible.length) {

@@ -16,6 +16,7 @@ window.getStudentTransferHistoryIndex = async function (client = window.supabase
   if (!profile?.school_id) throw new Error("Your student profile is not linked to a school.");
 
   const index = {
+    userId: user.id,
     transfers: Array.isArray(data) ? data : [],
     currentSchoolId: profile?.school_id ? String(profile.school_id).toLowerCase() : null,
     recordIds: {
