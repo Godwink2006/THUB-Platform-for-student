@@ -1,6 +1,6 @@
 let allCatalogBooks = [];
 const BOOKS_PAGE_SIZE = 10;
-const BOOKS_CACHE_PREFIX = "thubStudentBooksCatalog:v1:";
+const BOOKS_CACHE_PREFIX = "thubStudentBooksCatalog:v2:";
 const BOOKS_LAST_ACCESS_KEY = "thubStudentBooksAccess:v1";
 let booksOffset = 0;
 let booksHasMore = false;
@@ -65,7 +65,7 @@ function restoreCachedBooksPage() {
     booksSchoolId = savedAccess.schoolId || "";
     // Cached catalog data never grants access; initializeBooksPage verifies enrollment with Supabase.
     booksGraduatedAccess = false;
-    booksCacheKey = savedAccess.cacheKey || `${BOOKS_CACHE_PREFIX}${booksStudentId}:${booksSchoolId || "no-school"}`;
+    booksCacheKey = `${BOOKS_CACHE_PREFIX}${booksStudentId}:${booksSchoolId || "no-school"}`;
 
     const cachedCatalog = readBooksCache();
     if (!cachedCatalog || cachedCatalog.studentId !== booksStudentId) return false;
@@ -338,18 +338,10 @@ async function loadBookCatalog(options = {}) {
       return;
     }
 
-    const { data: borrowings, error: borrowingsError } = await window.supabaseClient
-        .from("book_borrowings")
-        .select("book_id")
-        .eq("status", "borrowed")
-        .in("book_id", visibleBooks.map((book) => book.id));
-
-    if (borrowingsError) throw borrowingsError;
-
     booksOffset += visibleBooks.length;
     const catalogPage = visibleBooks.map((book) => ({
       ...book,
-      available_copies: getAvailableBookCopies(book, borrowings || []),
+      available_copies: getAvailableBookCopies(book),
     }));
     allCatalogBooks = append
       ? allCatalogBooks.concat(catalogPage)
@@ -387,12 +379,10 @@ function filterCatalogBooks(query) {
   });
 }
 
-function getAvailableBookCopies(book, activeBorrowings) {
-  const totalCopies = Number(book.total_copies) || 0;
-  const borrowedCopies = activeBorrowings.filter(
-    (borrowing) => borrowing.book_id === book.id,
-  ).length;
-  return Math.max(0, totalCopies - borrowedCopies);
+function getAvailableBookCopies(book) {
+  const availableCopies = Number(book.available_copies);
+  if (!Number.isFinite(availableCopies)) return 0;
+  return Math.max(0, Math.floor(availableCopies));
 }
 
 function renderBookCards(booksToRender) {

@@ -68,7 +68,7 @@
         const key = localStorage.key(index);
         if (
           key?.startsWith(CACHE_PREFIX) ||
-          key?.startsWith("thubStudentBooksCatalog:v1:")
+          key?.startsWith("thubStudentBooksCatalog:v")
         ) localStorage.removeItem(key);
       }
     } catch (error) {
