@@ -9,6 +9,7 @@ const MY_PROFILE_CACHE_PAGE = "my-profile";
 
 let currentProfileData = null;
 let myProfileDetailsReadOnly = false;
+let myProfileEditability = null;
 
 function getMyProfileErrorMessage(error, context = "profile", action = "update") {
   const code = String(error?.code || "").toLowerCase();
@@ -87,10 +88,59 @@ function populateCachedMyProfile() {
   const cached = window.studentPageCache?.readLast(MY_PROFILE_CACHE_PAGE);
   if (!cached?.data || !cachedProfileMatchesSession(cached.userId)) return false;
 
-  currentProfileData = cached.data;
+  currentProfileData = {
+    fullName: cached.data.fullName || "",
+    email: cached.data.email || "",
+    phone: cached.data.phone || "",
+    photoUrl: cached.data.photoUrl || DEFAULT_AVATAR,
+  };
+  if (typeof cached.data.canEditDetails === "boolean") {
+    myProfileEditability = cached.data.canEditDetails;
+    if (myProfileEditability) {
+      document
+        .getElementById("profileInformationSection")
+        ?.classList.add("profile-information-editable");
+    }
+  }
   populateProfileForm(currentProfileData);
   checkProfileChanges();
   return true;
+}
+
+function setProfileEditAccessPending() {
+  const section = document.getElementById("profileInformationSection");
+  section?.classList.add("profile-permission-pending");
+  ["fullName", "emailAddress", "phoneNumber", "myProfilePhoto", "resetProfileInfo", "saveProfileInfo"]
+    .forEach((id) => {
+      const field = document.getElementById(id);
+      if (field) field.disabled = true;
+    });
+}
+
+function setProfileEditability(canEdit) {
+  myProfileEditability = canEdit;
+  myProfileDetailsReadOnly = !canEdit;
+  const section = document.getElementById("profileInformationSection");
+  const saveButton = document.getElementById("saveProfileInfo");
+  section?.classList.remove("profile-permission-pending");
+  section?.classList.toggle("profile-information-editable", canEdit);
+  section?.classList.toggle("graduated-profile-readonly", !canEdit);
+
+  ["fullName", "emailAddress", "phoneNumber", "myProfilePhoto", "resetProfileInfo", "saveProfileInfo"]
+    .forEach((id) => {
+      const field = document.getElementById(id);
+      if (field) field.disabled = !canEdit;
+    });
+  if (saveButton) saveButton.style.display = canEdit ? "flex" : "none";
+  if (canEdit) checkProfileChanges();
+}
+
+function saveMyProfileCache(userId) {
+  if (!userId || !currentProfileData) return;
+  window.studentPageCache?.write(MY_PROFILE_CACHE_PAGE, userId, {
+    ...currentProfileData,
+    canEditDetails: myProfileEditability,
+  });
 }
 
 function cachedProfileMatchesSession(cachedUserId) {
@@ -138,7 +188,15 @@ async function loadMyProfile(options = {}) {
 
     const cached = window.studentPageCache?.read(MY_PROFILE_CACHE_PAGE, user.id);
     if (cached?.data && !refresh) {
-      currentProfileData = cached.data;
+      currentProfileData = {
+        fullName: cached.data.fullName || "",
+        email: cached.data.email || "",
+        phone: cached.data.phone || "",
+        photoUrl: cached.data.photoUrl || DEFAULT_AVATAR,
+      };
+      if (typeof cached.data.canEditDetails === "boolean") {
+        myProfileEditability = cached.data.canEditDetails;
+      }
       populateProfileForm(currentProfileData);
       checkProfileChanges();
       return true;
@@ -168,7 +226,7 @@ async function loadMyProfile(options = {}) {
     };
 
     populateProfileForm(currentProfileData);
-    window.studentPageCache?.write(MY_PROFILE_CACHE_PAGE, user.id, currentProfileData);
+    saveMyProfileCache(user.id);
 
     checkProfileChanges();
     return true;
@@ -391,7 +449,11 @@ function checkProfileChanges() {
   const saveBtn = document.getElementById("saveProfileInfo");
   if (!saveBtn) return;
 
-  saveBtn.disabled = false;
+  saveBtn.disabled = Boolean(
+    document
+      .getElementById("profileInformationSection")
+      ?.classList.contains("profile-permission-pending"),
+  );
 }
 
 function validateProfileInputs(fullName, email, phone) {
@@ -416,6 +478,7 @@ function validateProfileInputs(fullName, email, phone) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  setProfileEditAccessPending();
   populateCachedMyProfile();
 
   const refreshButton = document.getElementById("refreshMyProfile");
@@ -561,8 +624,6 @@ function validatePasswordRequirements(password) {
 document.addEventListener("DOMContentLoaded", async function () {
   const saveBtn = document.getElementById("saveProfileInfo");
   if (!saveBtn) return;
-  const profileSection = document.getElementById("profileInformationSection");
-  profileSection?.classList.remove("profile-information-editable");
 
   try {
     const { data, error: authError } = await supabaseClient.auth.getUser();
@@ -582,8 +643,8 @@ document.addEventListener("DOMContentLoaded", async function () {
     if (profileError) throw profileError;
 
     if (String(profile?.role || "").trim().toLowerCase() !== "student") {
-      profileSection?.classList.add("profile-information-editable");
-      saveBtn.style.display = "flex";
+      setProfileEditability(true);
+      saveMyProfileCache(user.id);
       return;
     }
 
@@ -608,9 +669,7 @@ document.addEventListener("DOMContentLoaded", async function () {
     );
 
     if (isRestrictedType) {
-      myProfileDetailsReadOnly = true;
-      const profileSection = document.getElementById("profileInformationSection");
-      profileSection?.classList.add("graduated-profile-readonly");
+      setProfileEditability(false);
 
       const notice = document.getElementById("profileInformationNotice");
       if (notice) {
@@ -619,20 +678,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         notice.hidden = false;
       }
 
-      ["fullName", "emailAddress", "phoneNumber", "myProfilePhoto"].forEach((id) => {
-        const field = document.getElementById(id);
-        if (field) field.disabled = true;
-      });
-      saveBtn.style.display = "none";
-      document
-        .getElementById("resetProfileInfo")
-        ?.style.setProperty("display", "none", "important");
-      document
-        .getElementById("profilePhotoActions")
-        ?.style.setProperty("display", "none", "important");
+      saveMyProfileCache(user.id);
     } else {
-      profileSection?.classList.add("profile-information-editable");
-      saveBtn.style.display = "flex";
+      setProfileEditability(true);
+      saveMyProfileCache(user.id);
     }
   } catch (error) {
     showMyProfileError(error, "enrollment information", "load");
