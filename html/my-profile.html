@@ -43,18 +43,10 @@
     <section class="my-profiles-page" id="myProfile">
       <div class="page-header">
         <h2>My Profile</h2>
-        <p>Manage profile information.</p>
       </div>
-
-      <button id="backBtn" type="button" class="back-my-profiles-btn">
-        <i class="fa-solid fa-chevron-left"></i>
-        Back
-      </button>
 
       <form id="myProfileForm" class="my-profiles-form">
         <div class="form-section" id="profileInformationSection">
-          <h3>Update Profile Information</h3>
-
           <p
             id="profileInformationNotice"
             class="profile-information-notice"
@@ -66,21 +58,10 @@
               <div class="my-profile-upload">
                 <img
                   id="profileAvatar"
-                  src="https://cdn-icons-png.flaticon.com/512/149/149071.png"
-                  alt="Profile Picture"
-                  style="
-                    width: 150px;
-                    height: 150px;
-                    border-radius: 50%;
-                    object-fit: cover;
-                    display: block;
-                    margin: 0 auto;
-                  "
-                  onerror="
-                    this.onerror = null;
-                    this.src =
-                      'https://cdn-icons-png.flaticon.com/512/149/149071.png';
-                  "
+                  class="profile-avatar"
+                  src="/icons/student-avatar-default.svg"
+                  alt="Profile photo"
+                  onerror="this.onerror = null; this.src = '/icons/student-avatar-default.svg';"
                 />
 
                 <div class="avatar-upload-actions" id="profilePhotoActions">
@@ -134,25 +115,20 @@
           </div>
 
           <div class="form-actions">
-            <button
-              type="reset"
-              class="cancel-btn"
-              id="resetProfileInfo"
-            >
+            <button type="reset" class="cancel-btn" id="resetProfileInfo">
               Reset
             </button>
-
-            <form
-              id="profileForm"
-              data-student-status="<%= studentStatusFromDB %>"
-            >
-              <button type="submit" id="saveProfileInfo" class="save-btn">
-                Save Changes
-              </button>
-            </form>
+            <button type="submit" id="saveProfileInfo" class="save-btn">
+              Save Changes
+            </button>
           </div>
         </div>
       </form>
+
+      <button id="refreshMyProfile" class="my-profile-refresh" type="button" aria-label="Refresh profile information">
+        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+        <span>Refresh</span>
+      </button>
 
       <form id="changeMyPassword" class="my-profiles-form">
         <div class="form-section">
@@ -276,6 +252,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/supabase.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/student-page-cache.js"></script>
     <script src="/js/my-profile.js"></script>
     <script src="/js/app-icons.js"></script>
   </body>

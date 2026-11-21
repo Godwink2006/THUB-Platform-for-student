@@ -5,6 +5,7 @@ function togglePassword(id) {
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128' width='128' height='128'><circle cx='64' cy='64' r='64' fill='%23E4E6EB'/><circle cx='64' cy='46' r='22' fill='%23B0B3B8'/><path d='M24 112c0-22 18-40 40-40s40 18 40 40' fill='%23B0B3B8'/></svg>";
+const MY_PROFILE_CACHE_PAGE = "my-profile";
 
 let currentProfileData = null;
 let myProfileDetailsReadOnly = false;
@@ -82,15 +83,65 @@ function showMyProfileError(error, context = "profile", action = "update") {
   return message;
 }
 
-async function loadMyProfile() {
+function populateCachedMyProfile() {
+  const cached = window.studentPageCache?.readLast(MY_PROFILE_CACHE_PAGE);
+  if (!cached?.data || !cachedProfileMatchesSession(cached.userId)) return false;
+
+  currentProfileData = cached.data;
+  populateProfileForm(currentProfileData);
+  checkProfileChanges();
+  return true;
+}
+
+function cachedProfileMatchesSession(cachedUserId) {
+  if (!cachedUserId) return false;
+  try {
+    return Object.keys(localStorage).some((key) => {
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
+      try {
+        const session = JSON.parse(localStorage.getItem(key) || "null");
+        return session?.user?.id === cachedUserId;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+function setMyProfileRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshMyProfile");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.setAttribute("aria-busy", String(isRefreshing));
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+async function loadMyProfile(options = {}) {
+  const refresh = options.refresh === true;
+  const showProgress = options.showProgress !== false;
+  if (refresh && showProgress) setMyProfileRefreshState(true);
+
   try {
     const { data, error: authError } = await supabaseClient.auth.getUser();
     if (authError) throw authError;
     const user = data?.user;
 
     if (!user) {
+      window.studentPageCache?.clearLast(MY_PROFILE_CACHE_PAGE);
       showMyProfileError({ status: 401 }, "profile", "load");
-      return;
+      return false;
+    }
+
+    const cached = window.studentPageCache?.read(MY_PROFILE_CACHE_PAGE, user.id);
+    if (cached?.data && !refresh) {
+      currentProfileData = cached.data;
+      populateProfileForm(currentProfileData);
+      checkProfileChanges();
+      return true;
     }
 
     const { data: profile, error } = await supabaseClient
@@ -101,7 +152,7 @@ async function loadMyProfile() {
 
     if (error) {
       showMyProfileError(error, "profile", "load");
-      return;
+      return false;
     }
 
     let avatarUrl = profile.photo_url || DEFAULT_AVATAR;
@@ -117,10 +168,15 @@ async function loadMyProfile() {
     };
 
     populateProfileForm(currentProfileData);
+    window.studentPageCache?.write(MY_PROFILE_CACHE_PAGE, user.id, currentProfileData);
 
     checkProfileChanges();
+    return true;
   } catch (error) {
     showMyProfileError(error, "profile", "load");
+    return false;
+  } finally {
+    if (refresh && showProgress) setMyProfileRefreshState(false);
   }
 }
 
@@ -299,7 +355,7 @@ async function handleUpdateProfile(event) {
       showToast("Profile updated successfully!", "success");
     }
 
-    await loadMyProfile();
+    await loadMyProfile({ refresh: true, showProgress: false });
 
     if (fileInput) fileInput.value = "";
     checkProfileChanges();
@@ -360,7 +416,14 @@ function validateProfileInputs(fullName, email, phone) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadMyProfile();
+  populateCachedMyProfile();
+
+  const refreshButton = document.getElementById("refreshMyProfile");
+  refreshButton?.addEventListener("click", () => {
+    void loadMyProfile({ refresh: true });
+  });
+
+  void loadMyProfile();
 
   const profileForm = document.getElementById("myProfileForm");
   const fileInput = document.getElementById("myProfilePhoto");
@@ -576,9 +639,3 @@ document.addEventListener("DOMContentLoaded", async function () {
   }
 });
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const backBtn = document.getElementById("backBtn");
-  if (!backBtn) return;
-
-  backBtn.onclick = () => window.location.replace("settings.html");
-});
