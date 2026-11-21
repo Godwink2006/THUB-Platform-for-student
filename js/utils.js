@@ -377,11 +377,11 @@ window.forceLogout = async function () {
   }
 };
 async function checkPageAccess() {
-  if (isLoginPage()) return;
+  if (isLoginPage()) return true;
 
   if (!window.supabaseClient) {
     window.location.replace("/index.html?error=service_unavailable");
-    return;
+    return false;
   }
 
   const authCtx = await window.getAuthContext();
@@ -390,12 +390,12 @@ async function checkPageAccess() {
 
   if (authCtx?.authError || authCtx?.profileError) {
     console.warn("Keeping the current session while access checks are temporarily unavailable.");
-    return;
+    return true;
   }
 
   if (!user) {
     await window.forceLogout();
-    return;
+    return false;
   }
 
   const accountStatus = String(profile?.status || "").trim().toLowerCase();
@@ -404,9 +404,10 @@ async function checkPageAccess() {
     String(profile?.role || "").trim().toLowerCase() !== "student"
   ) {
     await window.forceLogout();
-    return;
+    return false;
   }
 
+  return true;
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
@@ -619,7 +620,12 @@ window.addEventListener("pageshow", async (event) => {
     return;
   }
 
-  if (!isLogin) await checkPageAccess();
+  if (!isLogin) {
+    const accessAllowed = await checkPageAccess();
+    if (accessAllowed) {
+      document.documentElement.classList.remove("auth-pending");
+    }
+  }
 
   window.supabaseClient.auth.onAuthStateChange((event) => {
     if (event === "SIGNED_OUT" && !isLogin) {
