@@ -221,6 +221,14 @@ i {
   cursor: pointer;
 }
 
+.student-login-help {
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 12px;
+  line-height: 1.6;
+  text-align: center;
+}
+
 .login-btn i,
 .login-btn .fa,
 .login-btn svg {

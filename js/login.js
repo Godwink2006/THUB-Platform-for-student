@@ -24,13 +24,21 @@ async function redirectIfAlreadySignedIn() {
       .maybeSingle();
     if (profileError) throw profileError;
 
-    if (!profile || String(profile.status || "").toLowerCase() !== "active") {
+    if (!profile) {
       await client.auth.signOut();
+      showToast("We couldn't find a student profile for this account. Contact your school administrator.", "error");
       return;
     }
 
     if (String(profile.role || "").trim().toLowerCase() !== "student") {
       await client.auth.signOut();
+      showToast("This sign-in page is for student accounts. Use the login for your account type.", "error");
+      return;
+    }
+
+    if (String(profile.status || "").trim().toLowerCase() !== "active") {
+      await client.auth.signOut();
+      showToast("Your student account is inactive. Contact your school administrator.", "error");
       return;
     }
 
@@ -69,7 +77,9 @@ form.addEventListener("submit", async (e) => {
 
     const {
       data: { session },
+      error: sessionError,
     } = await window.supabaseClient.auth.getSession();
+    if (sessionError) throw sessionError;
 
     if (!session) {
       throw new Error("No session found.");
@@ -77,13 +87,13 @@ form.addEventListener("submit", async (e) => {
 
     const { data: profile, error: profileError } = await window.supabaseClient
       .from("profiles")
-      .select("*")
+      .select("role, status")
       .eq("id", data.user.id)
       .maybeSingle();
 
     if (profileError) {
       console.error(profileError);
-      throw new Error(profileError.message || "Failed to fetch user profile.");
+      throw profileError;
     }
 
     if (!profile) {
@@ -98,10 +108,10 @@ form.addEventListener("submit", async (e) => {
       throw new Error("This app is for student accounts. Sign in with a student account.");
     }
 
-    if (profile.status !== "active") {
+    if (String(profile.status || "").trim().toLowerCase() !== "active") {
       await window.supabaseClient.auth.signOut();
       throw new Error(
-        "Your account has been deactivated. Contact the system administrator.",
+        "Your student account is inactive. Contact your school administrator.",
       );
     }
 
@@ -111,6 +121,6 @@ form.addEventListener("submit", async (e) => {
     console.error(err);
   } finally {
     loginButton.disabled = false;
-    loginButton.textContent = "Login";
+    loginButton.textContent = "Sign In";
   }
 });
