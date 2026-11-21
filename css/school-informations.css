@@ -408,6 +408,33 @@ select:disabled {
   box-shadow: 0 12px 32px rgba(15, 23, 42, 0.06);
 }
 
+.school-information-refresh {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  padding: 0 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
+}
+
+.school-information-view {
+  text-align: center;
+}
+
+.school-details-card {
+  text-align: left;
+}
+
 .school-info-section:first-child {
   padding-top: 0;
 }
@@ -500,6 +527,12 @@ body.app-dark .school-details-card {
   border-color: #3f3f46;
   background: #1c1c1c;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.22);
+}
+
+body.app-dark .school-information-refresh {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
 }
 
 body.app-dark .school-info-section + .school-info-section {

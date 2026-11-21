@@ -1,3 +1,5 @@
+const SCHOOL_INFORMATION_CACHE_PAGE = "school-information";
+const DEFAULT_SCHOOL_INFORMATION_LOGO = "/icons/school-avatar-default.svg";
 let schoolInformationUser = null;
 
 
@@ -82,27 +84,94 @@ function schoolInformationErrorMessage(error, action = "load") {
     : "School information could not be loaded. Refresh the page or contact your school administrator.";
 }
 
-async function loadSchoolProfile() {
+function renderSchoolInformation(school) {
+  const logoImg = document.getElementById("schoolLogoPreview");
+  if (logoImg) {
+    logoImg.src = school.logo_url || DEFAULT_SCHOOL_INFORMATION_LOGO;
+    logoImg.alt = `${school.school_name || "School"} logo`;
+  }
+
+  setText("schoolNameValue", school.school_name);
+  setText("schoolMottoValue", school.school_motto);
+  setText("schoolEmailValue", school.email);
+  setText("alternativePhoneValue", school.alternative_phone);
+  setText("schoolWebsiteValue", school.website);
+  setText("schoolAddressValue", school.address);
+  setText("schoolCityValue", school.city);
+  setText("schoolCountryValue", school.country);
+  setText("principalNameValue", school.principal_name);
+  setText("principalEmailValue", school.principal_email);
+  setText("principalPhoneValue", school.principal_phone);
+  setText("schoolTypeValue", school.school_type);
+  setText("educationLevelValue", school.education_level);
+}
+
+function cachedSchoolInformationMatchesSession(cachedUserId) {
+  if (!cachedUserId) return false;
+  try {
+    return Object.keys(localStorage).some((key) => {
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
+      try {
+        const session = JSON.parse(localStorage.getItem(key) || "null");
+        return session?.user?.id === cachedUserId;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+function restoreCachedSchoolInformation() {
+  const cached = window.studentPageCache?.readLast(SCHOOL_INFORMATION_CACHE_PAGE);
+  if (!cached?.data || !cachedSchoolInformationMatchesSession(cached.userId)) return false;
+
+  renderSchoolInformation(cached.data);
+  const view = document.getElementById("schoolInformationView");
+  if (view) view.hidden = false;
+  const loader = document.getElementById("formLoader");
+  if (loader) loader.style.display = "none";
+  return true;
+}
+
+function setSchoolInformationRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshSchoolInformation");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.setAttribute("aria-busy", String(isRefreshing));
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+async function loadSchoolProfile(options = {}) {
+  const refresh = options.refresh === true;
+  if (refresh) setSchoolInformationRefreshState(true);
+
   try {
     const user = schoolInformationUser;
-    if (!user) return false;
+    if (!user) {
+      window.studentPageCache?.clearLast(SCHOOL_INFORMATION_CACHE_PAGE);
+      return false;
+    }
 
-    const { data: userProfile, error: profileError } = await supabaseClient
-      .from("profiles")
-      .select("school_id")
-      .eq("id", user.id)
-      .single();
-    if (profileError) throw profileError;
-
-    if (!userProfile?.school_id) {
+    const schoolId = options.schoolId || "";
+    if (!schoolId) {
       showSchoolInformationMessage("Your account is not linked to a school.", "error");
       return false;
     }
 
+    const cached = window.studentPageCache?.read(SCHOOL_INFORMATION_CACHE_PAGE, user.id);
+    if (!refresh && cached?.data?.schoolId === schoolId) {
+      renderSchoolInformation(cached.data);
+      return true;
+    }
+
     const { data, error } = await supabaseClient
       .from("schools")
-      .select("*")
-      .eq("id", userProfile.school_id)
+      .select("school_name, school_motto, logo_url, email, alternative_phone, website, address, city, country, principal_name, principal_email, principal_phone, school_type, education_level")
+      .eq("id", schoolId)
       .maybeSingle();
 
     if (error) throw error;
@@ -112,27 +181,18 @@ async function loadSchoolProfile() {
       return false;
     }
 
-    const logoImg = document.getElementById("schoolLogoPreview");
-    if (logoImg) logoImg.src = data.logo_url || "/icons/school-avatar-default.svg";
-
-    setText("schoolNameValue", data.school_name);
-    setText("schoolMottoValue", data.school_motto);
-    setText("schoolEmailValue", data.email);
-    setText("alternativePhoneValue", data.alternative_phone);
-    setText("schoolWebsiteValue", data.website);
-    setText("schoolAddressValue", data.address);
-    setText("schoolCityValue", data.city);
-    setText("schoolCountryValue", data.country);
-    setText("principalNameValue", data.principal_name);
-    setText("principalEmailValue", data.principal_email);
-    setText("principalPhoneValue", data.principal_phone);
-    setText("schoolTypeValue", data.school_type);
-    setText("educationLevelValue", data.education_level);
+    const schoolData = { ...data, schoolId };
+    renderSchoolInformation(schoolData);
+    window.studentPageCache?.write(SCHOOL_INFORMATION_CACHE_PAGE, user.id, schoolData);
+    const notice = document.getElementById("schoolInformationNotice");
+    if (notice) notice.hidden = true;
     return true;
   } catch (err) {
     console.error("Error loading school profile:", err);
     showSchoolInformationMessage(schoolInformationErrorMessage(err), "error");
     return false;
+  } finally {
+    if (refresh) setSchoolInformationRefreshState(false);
   }
 }
 
@@ -146,20 +206,33 @@ function setText(id, val) {
 document.addEventListener("DOMContentLoaded", async () => {
   const loader = document.getElementById("formLoader");
   const view = document.getElementById("schoolInformationView");
+  const refreshButton = document.getElementById("refreshSchoolInformation");
+  const restoredFromCache = restoreCachedSchoolInformation();
+  if (restoredFromCache && refreshButton) refreshButton.disabled = true;
 
   let access = { isGraduatedStudent: false, user: null };
+  let accessVerified = false;
   try {
     access = await checkStudentAccess();
     schoolInformationUser = access.user;
+    accessVerified = true;
   } catch (error) {
     console.error("Could not determine School Information access:", error);
     showSchoolInformationMessage(schoolInformationErrorMessage(error), "error");
+    window.studentPageCache?.clearLast(SCHOOL_INFORMATION_CACHE_PAGE);
+  }
+
+  if (!accessVerified) {
+    if (view) view.hidden = true;
+    if (loader) loader.style.display = "none";
+    return;
   }
 
   if (access.isGraduatedStudent) {
     const page = document.getElementById("schoolInformationPage");
     page?.classList.add("graduated-school-access");
     if (view) view.hidden = true;
+    window.studentPageCache?.clearLast(SCHOOL_INFORMATION_CACHE_PAGE);
     if (loader) loader.style.display = "none";
     showSchoolInformationMessage(
       "School Information is unavailable because your enrollment is marked as graduated or transferred. Contact your school administrator if you think this is a mistake.",
@@ -167,7 +240,12 @@ document.addEventListener("DOMContentLoaded", async () => {
     return;
   }
 
-  const loaded = await loadSchoolProfile();
+  refreshButton?.addEventListener("click", () => {
+    void loadSchoolProfile({ refresh: true, schoolId: access.profile?.school_id });
+  });
+  if (refreshButton) refreshButton.disabled = false;
+
+  const loaded = await loadSchoolProfile({ schoolId: access.profile?.school_id });
 
   if (loader) loader.style.display = "none";
   if (view) view.hidden = !loaded;
