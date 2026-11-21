@@ -62,23 +62,29 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  width: auto;
-  min-width: 150px;
-  min-height: 42px;
-  padding: 9px 16px;
-  border: 0;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid #dbe3ef;
   border-radius: 20px;
-  background: #2563eb;
-  color: #ffffff;
+  background: #fff;
+  color: #334155;
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
-.grades-filter-button:hover {
-  background: #1d4ed8;
+.grades-filter-button:hover:not(:disabled) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.grades-filter-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
 }
 
 .grades-filter-button:disabled {
@@ -255,12 +261,15 @@ body.app-dark .status-badge.graduated {
 }
 
 body.app-dark .grades-filter-button {
-  background: #2563eb;
-  color: #fff;
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
 }
 
 body.app-dark .grades-filter-button:hover:not(:disabled) {
-  background: #1d4ed8;
+  border-color: #52525b;
+  background: #27272a;
+  color: #fff;
 }
 
 @media (max-width: 768px) {
