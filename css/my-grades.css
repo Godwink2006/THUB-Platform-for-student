@@ -54,8 +54,13 @@
 
 .grades-filter-actions {
   display: flex;
+  flex: 0 0 100%;
   justify-content: center;
-  margin: -12px 0 20px;
+  margin: 0;
+}
+
+.toolbar > div:not(.grades-filter-actions) {
+  flex: 0 0 100%;
 }
 
 .grades-filter-button {

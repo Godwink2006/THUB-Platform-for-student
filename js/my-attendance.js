@@ -1,4 +1,6 @@
 let allAttendanceRecords = [];
+const MY_ATTENDANCE_CACHE_PAGE = "my-attendance";
+let attendanceLoading = false;
 
 function getOneRelation(value) {
   return Array.isArray(value) ? value[0] ?? null : value ?? null;
@@ -15,49 +17,105 @@ function getSemesterNumber(termName) {
   return null;
 }
 
-document.addEventListener("DOMContentLoaded", async () => {
+document.addEventListener("DOMContentLoaded", () => {
+  const hasCachedAttendance = restoreCachedAttendance();
+  if (!hasCachedAttendance) {
+    const tableBody = document.getElementById("attendanceHistoryTable");
+    if (tableBody) {
+      tableBody.innerHTML = '<tr><td colspan="5" class="attendance-empty-state">Loading your attendance...</td></tr>';
+    }
+  }
+  document.getElementById("refreshStudentAttendance")?.addEventListener("click", () => {
+    void loadStudentAttendanceData({ refresh: true });
+  });
+  ["academicYearFilter", "termFilter", "classFilter", "subjectFilter", "periodFilter", "statusFilter"]
+    .forEach((id) => document.getElementById(id)?.addEventListener("change", applyFiltersAndRender));
+  void loadStudentAttendanceData();
+});
+
+function cachedAttendanceMatchesSession(cachedUserId) {
+  if (!cachedUserId) return false;
+  try {
+    return Object.keys(localStorage).some((key) => {
+      if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
+      try {
+        return JSON.parse(localStorage.getItem(key) || "null")?.user?.id === cachedUserId;
+      } catch {
+        return false;
+      }
+    });
+  } catch {
+    return false;
+  }
+}
+
+function restoreCachedAttendance() {
+  const cached = window.studentPageCache?.readLast(MY_ATTENDANCE_CACHE_PAGE);
+  if (
+    !cached?.data ||
+    !Array.isArray(cached.data.records) ||
+    !cachedAttendanceMatchesSession(cached.userId)
+  ) return false;
+
+  allAttendanceRecords = cached.data.records;
+  populateDropdownFilters(allAttendanceRecords);
+  applyFiltersAndRender();
+  return true;
+}
+
+function setAttendanceRefreshState(isRefreshing) {
+  const button = document.getElementById("refreshStudentAttendance");
+  if (!button) return;
+  button.disabled = isRefreshing;
+  button.setAttribute("aria-busy", String(isRefreshing));
+  button.innerHTML = isRefreshing
+    ? '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i><span>Refreshing...</span>'
+    : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
+}
+
+async function loadStudentAttendanceData(options = {}) {
+  if (attendanceLoading) return;
+  attendanceLoading = true;
+  const refresh = options.refresh === true;
+  if (refresh) setAttendanceRefreshState(true);
   const client = window.supabaseClient || supabaseClient;
   const tableBody = document.getElementById("attendanceHistoryTable");
 
   try {
     if (!client) throw new Error("Supabase client is not available.");
-
-    const {
-      data: { user },
-      error,
-    } = await client.auth.getUser();
-
-    if (error || !user) {
+    const { data: { user }, error: authError } = await client.auth.getUser();
+    if (authError) throw authError;
+    if (!user) {
+      window.studentPageCache?.clearLast(MY_ATTENDANCE_CACHE_PAGE);
       window.location.href = "login.html";
       return;
     }
-
-    if (tableBody) {
-      tableBody.innerHTML = `
-        <tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">
-          Loading your attendance and filter options...
-        </td></tr>`;
-    }
-
+    if (refresh) window.studentTransferHistoryIndex = null;
     const historyIndex = await window.getStudentTransferHistoryIndex(client);
-    await loadStudentAttendanceData(user.id, historyIndex, client);
-
-    document
-      .getElementById("applyStudentAttendanceFilters")
-      ?.addEventListener("click", applyFiltersAndRender);
+    await fetchStudentAttendanceRecords(user.id, historyIndex, client);
+    window.studentPageCache?.write(MY_ATTENDANCE_CACHE_PAGE, user.id, {
+      records: allAttendanceRecords,
+    });
+    populateDropdownFilters(allAttendanceRecords);
+    applyFiltersAndRender();
   } catch (error) {
     console.error("Error loading student attendance:", error);
-    if (tableBody) {
+    if (!allAttendanceRecords.length && tableBody) {
       tableBody.innerHTML = `
-        <tr><td colspan="5" style="text-align:center;color:#b42318;padding:20px;">
-          ${escapeHTML(error.message || "Could not load attendance records.")}
+        <tr><td colspan="5" class="attendance-state attendance-state-error">
+          ${escapeHTML(error.message || "Could not load attendance records. Refresh the page or try again.")}
         </td></tr>`;
+      calculateOverviewStats([]);
+      renderSubjectCards([]);
     }
-    showToast(error.message || "Could not load attendance records.", "error");
+    if (!allAttendanceRecords.length) showToast(error.message || "Could not load attendance records.", "error");
+  } finally {
+    attendanceLoading = false;
+    if (refresh) setAttendanceRefreshState(false);
   }
-});
+}
 
-async function loadStudentAttendanceData(userId, historyIndex, client) {
+async function fetchStudentAttendanceRecords(userId, historyIndex, client) {
   const { data: attendanceRecords, error: recordsError } = await client
     .from("attendance_records")
     .select("id, status, created_at, student_id, attendance_id")
@@ -72,8 +130,6 @@ async function loadStudentAttendanceData(userId, historyIndex, client) {
 
   if (!currentAttendanceRecords.length) {
     allAttendanceRecords = [];
-    populateDropdownFilters([]);
-    showAttendanceFilterPrompt("No attendance records found. Choose filters to view attendance.");
     return;
   }
 
@@ -174,27 +230,11 @@ async function loadStudentAttendanceData(userId, historyIndex, client) {
     },
   }));
 
-  populateDropdownFilters(allAttendanceRecords);
-  showAttendanceFilterPrompt("Choose your filters, then select View attendance.");
-}
-
-function showAttendanceFilterPrompt(message) {
-  const tableBody = document.getElementById("attendanceHistoryTable");
-  const cards = document.getElementById("subjectCardsContainer");
-  if (tableBody) {
-    tableBody.innerHTML = `
-      <tr><td colspan="5" style="text-align:center;color:#888;padding:20px;">
-        ${escapeHTML(message)}
-      </td></tr>`;
-  }
-  if (cards) {
-    cards.innerHTML = `<p style="color:#888;grid-column:1/-1;text-align:center;">${escapeHTML(message)}</p>`;
-  }
-  calculateOverviewStats([]);
 }
 
 function fillAttendanceFilter(select, placeholder, values) {
   if (!select) return;
+  const selectedValue = select.value;
 
   select.replaceChildren();
   const placeholderOption = document.createElement("option");
@@ -213,6 +253,7 @@ function fillAttendanceFilter(select, placeholder, values) {
       option.textContent = label;
       select.appendChild(option);
     });
+  if (selectedValue && values.has(selectedValue)) select.value = selectedValue;
 }
 
 function populateDropdownFilters(records) {
@@ -255,10 +296,12 @@ function populateDropdownFilters(records) {
   );
 
   if (termFilter) {
+    const selectedTerm = termFilter.value;
     termFilter.innerHTML = `
       <option value="all">All Semesters</option>
       <option value="1">1st Semester</option>
       <option value="2">2nd Semester</option>`;
+    termFilter.value = selectedTerm;
   }
 }
 
@@ -270,8 +313,8 @@ function renderAttendanceHistory(records) {
   if (!records?.length) {
     tbody.innerHTML = `
       <tr>
-        <td colspan="5" style="text-align:center;color:#888;padding:20px;">
-          No matching attendance records found for these filters.
+        <td colspan="5" class="attendance-empty-state">
+          ${allAttendanceRecords.length ? "No matching attendance records found for these filters." : "No attendance records are available yet."}
         </td>
       </tr>`;
     return;
@@ -337,7 +380,7 @@ function renderSubjectCards(records) {
   });
 
   if (!subjectsMap.size) {
-    container.innerHTML = `<p style="color:#888;grid-column:1/-1;text-align:center;">No subject data for this filter selection.</p>`;
+    container.innerHTML = `<p class="attendance-empty-state">${allAttendanceRecords.length ? "No subject data for this filter selection." : "No subject attendance is available yet."}</p>`;
     return;
   }
 

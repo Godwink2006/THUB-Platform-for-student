@@ -18,26 +18,9 @@
   font-family: "Poppins", sans-serif;
 }
 
-.back-academics-btn {
-  height: 36px;
-  padding: 0 14px;
-  background: #1f2937;
-  color: #f9fafb;
-  border: 0.5px solid #dbd7d7;
-  cursor: pointer;
-  margin-bottom: 12px;
-  font-size: 13px;
-}
-
 .topbar h1 {
   font-size: 26px;
   font-weight: 700;
-}
-
-.topbar p {
-  color: #6b7280;
-  font-size: 14px;
-  margin-top: 4px;
 }
 
 .stats-grid {
@@ -45,6 +28,10 @@
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 16px;
   margin: 24px 0;
+}
+
+.stats-grid > .stat-card:last-child {
+  grid-column: 1 / -1;
 }
 
 .stat-card {
@@ -167,28 +154,41 @@
 .attendance-filter-actions {
   display: flex;
   flex: 0 0 100%;
-  justify-content: flex-end;
+  justify-content: center;
 }
 
 .attendance-filter-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 9px 16px;
-  border: 0;
-  border-radius: 8px;
-  background: #2563eb;
-  color: #ffffff;
+  gap: 0.5rem;
+  min-height: 44px;
+  padding: 0 1rem;
+  border: 1px solid #dbe3ef;
+  border-radius: 20px;
+  background: #fff;
+  color: #334155;
   font: inherit;
   font-size: 0.875rem;
   font-weight: 600;
   cursor: pointer;
+  transition: background 160ms ease, border-color 160ms ease, color 160ms ease;
 }
 
-.attendance-filter-button:hover {
-  background: #1d4ed8;
+.attendance-filter-button:hover:not(:disabled) {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.attendance-filter-button:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+
+.attendance-filter-button:disabled {
+  cursor: wait;
+  opacity: 0.75;
 }
 
 .history-card {
@@ -242,14 +242,122 @@ th {
   color: #991b1b;
 }
 
+.attendance-empty-state {
+  padding: 20px;
+  color: #6b7280;
+  text-align: center;
+}
+
+.attendance-state-error {
+  color: #dc2626;
+}
+
+body.app-dark .topbar,
+body.app-dark .container {
+  color: #f4f4f5;
+}
+
+body.app-dark .topbar h1,
+body.app-dark .section-title,
+body.app-dark .card-header h3 {
+  color: #f8fafc;
+}
+
+body.app-dark .toolbar,
+body.app-dark .stat-card,
+body.app-dark .subject-card,
+body.app-dark .history-card {
+  border-color: #3f3f46 !important;
+  background: #1c1c1c !important;
+  color: #e4e4e7;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+
+body.app-dark .toolbar select {
+  border-color: #3f3f46 !important;
+  background: #27272a !important;
+  color: #f4f4f5 !important;
+  color-scheme: dark;
+}
+
+body.app-dark .stat-label,
+body.app-dark .stat-sub,
+body.app-dark .subject-details,
+body.app-dark .attendance-empty-state {
+  color: #a1a1aa;
+}
+
+body.app-dark .stat-value {
+  color: #f4f4f5;
+}
+
+body.app-dark .text-green {
+  color: #6ee7b7;
+}
+
+body.app-dark .text-red,
+body.app-dark .attendance-state-error {
+  color: #fca5a5;
+}
+
+body.app-dark .subject-badge,
+body.app-dark .status-tag.present {
+  background: rgba(16, 185, 129, 0.18);
+  color: #6ee7b7;
+}
+
+body.app-dark .status-tag.absent {
+  background: rgba(239, 68, 68, 0.18);
+  color: #fca5a5;
+}
+
+body.app-dark .progress-bar-bg {
+  background: #3f3f46;
+}
+
+body.app-dark .progress-bar-fill {
+  background: #10b981;
+}
+
+body.app-dark .card-header {
+  border-color: #3f3f46;
+}
+
+body.app-dark th {
+  background: #27272a;
+  color: #d4d4d8;
+}
+
+body.app-dark td,
+body.app-dark th {
+  border-color: #3f3f46;
+}
+
+body.app-dark td {
+  color: #e4e4e7;
+}
+
+body.app-dark tbody tr:hover {
+  background: #27272a;
+}
+
+body.app-dark .attendance-filter-button {
+  border-color: #3f3f46;
+  background: #1c1c1c;
+  color: #e4e4e7;
+}
+
+body.app-dark .attendance-filter-button:hover:not(:disabled) {
+  border-color: #52525b;
+  background: #27272a;
+  color: #fff;
+}
+
 @media screen and (max-width: 768px) {
   .topbar h1 {
     font-size: 22px;
   }
 
-  .topbar p {
-    font-size: 13px;
-  }
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 10px;
@@ -285,8 +393,7 @@ th {
     gap: 12px;
   }
 
-  .subject-card,
-  .back-academics-btn {
+  .subject-card {
     border-radius: 10px;
   }
   .toolbar {
@@ -300,11 +407,6 @@ th {
   .toolbar select {
     border-radius: 10px;
     padding: 10px;
-  }
-
-  .attendance-filter-actions,
-  .attendance-filter-button {
-    width: 100%;
   }
 
   .history-card,

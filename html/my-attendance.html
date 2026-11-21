@@ -39,11 +39,7 @@
     <div class="container">
       <div class="topbar">
         <div>
-          <button class="back-academics-btn" onclick="history.back()">
-            Back
-          </button>
           <h1>My Attendance</h1>
-          <p>Track your class attendance and attendance rates for this year.</p>
         </div>
 
         <div
@@ -122,8 +118,8 @@
               id="periodFilter"
               aria-label="Filter by assessment period"
               style="
-                flex: 0 0 calc(50% - 4px);
-                width: calc(50% - 4px);
+                flex: 0 0 100%;
+                width: 100%;
                 box-sizing: border-box;
                 padding: 8px 6px;
                 font-size: 0.75rem;
@@ -150,9 +146,9 @@
             </select>
           </div>
           <div class="attendance-filter-actions">
-            <button id="applyStudentAttendanceFilters" type="button" class="attendance-filter-button">
-              <i class="fa-solid fa-filter" aria-hidden="true"></i>
-              View attendance
+            <button id="refreshStudentAttendance" type="button" class="attendance-filter-button">
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+              <span>Refresh</span>
             </button>
           </div>
         </div>
@@ -204,6 +200,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1"></script>
     <script src="/js/supabase.js"></script>
     <script src="/js/utils.js"></script>
+    <script src="/js/student-page-cache.js"></script>
     <script src="/js/transfer-history-index.js"></script>
     <script src="/js/my-attendance.js"></script>
       <script src="/js/app-icons.js"></script>
