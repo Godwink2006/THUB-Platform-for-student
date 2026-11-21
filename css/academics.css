@@ -217,8 +217,8 @@ body {
 
 .academics-photo-stack {
   position: relative;
-  width: 132px;
-  height: 116px;
+  width: 190px;
+  height: 150px;
 }
 
 .academics-student-photo,
@@ -236,16 +236,16 @@ body {
   z-index: 1;
   left: 0;
   bottom: 0;
-  width: 96px;
-  height: 96px;
+  width: 120px;
+  height: 120px;
 }
 
 .academics-school-photo {
   z-index: 2;
   top: 0;
   right: 0;
-  width: 70px;
-  height: 70px;
+  width: 100px;
+  height: 100px;
 }
 
 .academics-user-email {
