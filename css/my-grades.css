@@ -245,6 +245,11 @@ body.app-dark .status-badge.normal {
   color: #e4e4e7;
 }
 
+body.app-dark .status-badge.status-error {
+  background: #451a1a;
+  color: #fca5a5;
+}
+
 body.app-dark .status-badge.promoted {
   background: rgba(16, 185, 129, 0.18);
   color: #6ee7b7;
@@ -310,6 +315,11 @@ body.app-dark .grades-filter-button:hover:not(:disabled) {
 .status-badge.normal {
   background-color: #e2e8f0;
   color: #475569;
+}
+
+.status-badge.status-error {
+  background-color: #fee2e2;
+  color: #b91c1c;
 }
 
 .status-badge.promoted {

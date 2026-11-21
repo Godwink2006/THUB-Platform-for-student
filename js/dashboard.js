@@ -128,16 +128,27 @@ async function loadStudentDashboard(options = {}) {
       dashboardData.announcements = results[0].value;
     } else {
       console.error("Could not load student announcements:", results[0].reason);
+      showToast(
+        window.getSupabaseErrorMessage?.(results[0].reason, "Announcements could not be loaded."),
+        "error",
+      );
       if (!dashboardData.announcements) {
-        renderAnnouncementsError(preview);
+        renderAnnouncementsError(preview, results[0].reason);
       }
     }
     if (results[1].status === "fulfilled") {
       dashboardData.attendance = results[1].value;
     } else {
       console.error("Could not load student attendance summary:", results[1].reason);
+      showToast(
+        window.getSupabaseErrorMessage?.(results[1].reason, "Attendance could not be loaded."),
+        "error",
+      );
       if (!dashboardData.attendance) {
-        setStudentAttendanceSummary(null, "Attendance could not be loaded.");
+        setStudentAttendanceSummary(
+          null,
+          window.getSupabaseErrorMessage?.(results[1].reason, "Attendance could not be loaded."),
+        );
       }
     }
     renderDashboardData(dashboardData);
@@ -145,7 +156,7 @@ async function loadStudentDashboard(options = {}) {
   } catch (error) {
     console.error("Could not load the student dashboard:", error);
     if (preview) {
-      preview.innerHTML = '<div class="announcement-item"><p>Announcements could not be loaded. Refresh the page and try again.</p></div>';
+      renderAnnouncementsError(preview, error);
     }
   } finally {
     dashboardLoading = false;
@@ -245,9 +256,12 @@ function renderStudentAnnouncements(container, studentAnnouncements, schoolLinke
   }).join("");
 }
 
-function renderAnnouncementsError(container) {
+function renderAnnouncementsError(container, error) {
   if (container) {
-    container.innerHTML = '<div class="announcement-item"><p>Announcements could not be loaded. Refresh the page and try again.</p></div>';
+    const message = escapeStudentHtml(
+      window.getSupabaseErrorMessage?.(error, "Announcements could not be loaded. Refresh the page and try again."),
+    );
+    container.innerHTML = `<div class="announcement-item"><p>${message}</p></div>`;
   }
 }
 

@@ -93,6 +93,9 @@ function updateBooksNextButton() {
 }
 
 function booksErrorMessage(error, action = "load") {
+  const backendMessage = window.getSupabaseErrorMessage?.(error, "");
+  if (backendMessage) return backendMessage;
+
   const code = String(error?.code || "").toLowerCase();
   const status = Number(error?.status || error?.statusCode || 0);
   const diagnostic = `${code} ${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`.toLowerCase();

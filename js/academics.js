@@ -90,6 +90,12 @@ async function loadAcademicsProfile(options = {}) {
     window.studentPageCache?.write(ACADEMICS_CACHE_PAGE, user.id, data);
   } catch (error) {
     console.error("Could not load the student profile on academics:", error);
+    if (typeof showToast === "function") {
+      showToast(
+        window.getSupabaseErrorMessage?.(error, "Could not load your profile details."),
+        "error",
+      );
+    }
   } finally {
     if (refresh && refreshButton) {
       refreshButton.disabled = false;

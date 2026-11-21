@@ -97,8 +97,9 @@ async function loadMyTransferHistory(options = {}) {
     window.studentPageCache?.clearLast(MY_HISTORY_CACHE_PAGE);
     myTransferHistory = [];
     myHistoryRows = [];
+    const message = escapeHistoryHtml(window.getSupabaseErrorMessage?.(error, "History could not be loaded. Refresh the page or contact your school administrator."));
     container.innerHTML =
-      '<div class="history-empty history-error"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><h2>History could not be loaded</h2><p>Refresh the page or contact your school administrator.</p></div>';
+      `<div class="history-empty history-error"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><h2>History could not be loaded</h2><p>${message}</p></div>`;
   } finally {
     historyAccessLoading = false;
     if (refresh) setHistoryRefreshState(false);

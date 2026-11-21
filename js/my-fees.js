@@ -139,8 +139,9 @@ async function loadStudentFees(options = {}) {
     window.studentPageCache?.clearLast(MY_FEES_CACHE_PAGE);
     const feesContainer = document.getElementById("studentFeesContainer");
     const txContainer = document.getElementById("paymentTransactionsContainer");
-    if (feesContainer) feesContainer.innerHTML = '<div class="empty-state">Fees could not be loaded. Refresh the page or contact your school administrator.</div>';
-    if (txContainer) txContainer.innerHTML = '<div class="empty-state">Payment history could not be loaded.</div>';
+    const message = escapeHTML(window.getSupabaseErrorMessage?.(error, "Fees could not be loaded. Refresh the page or contact your school administrator."));
+    if (feesContainer) feesContainer.innerHTML = `<div class="empty-state">${message}</div>`;
+    if (txContainer) txContainer.innerHTML = `<div class="empty-state">${message}</div>`;
   } finally {
     feeAccessLoading = false;
     if (refresh) setFeeRefreshState(false);

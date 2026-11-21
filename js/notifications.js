@@ -66,10 +66,10 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (err) {
       console.error("Error fetching notifications:", err);
       if (!notificationsData.length) {
-        notificationList.innerHTML = '<div class="notifications-empty-state notifications-error-state">Failed to load notifications.</div>';
+        notificationList.innerHTML = `<div class="notifications-empty-state notifications-error-state">${escapeHTML(window.getSupabaseErrorMessage?.(err, "Failed to load notifications."))}</div>`;
       }
       if (typeof showToast === "function") {
-        showToast(err.message || "Failed to refresh notifications.", "error");
+        showToast(window.getSupabaseErrorMessage?.(err, "Failed to refresh notifications."), "error");
       }
     } finally {
       loading = false;
@@ -105,7 +105,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (err) {
       console.error("Error loading the next notifications:", err);
       if (typeof showToast === "function") {
-        showToast(err.message || "Could not load the next notifications.", "error");
+        showToast(window.getSupabaseErrorMessage?.(err, "Could not load the next notifications."), "error");
       }
     } finally {
       loading = false;
@@ -193,7 +193,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       console.error("Error deleting notification:", err);
       button.disabled = false;
       if (typeof showToast === "function") {
-        showToast(err.message || "Could not delete notification.", "error");
+        showToast(window.getSupabaseErrorMessage?.(err, "Could not delete notification."), "error");
       }
     }
   }
@@ -216,7 +216,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       void window.refreshStudentNotificationBadge?.();
     } catch (err) {
       console.error("Error updating notification:", err);
-      if (typeof showToast === "function") showToast("Could not update notification.", "error");
+      if (typeof showToast === "function") showToast(window.getSupabaseErrorMessage?.(err, "Could not update notification."), "error");
     }
   }
 
@@ -243,7 +243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     } catch (err) {
       console.error("Error marking all as read:", err);
       markAllReadBtn.disabled = false;
-      if (typeof showToast === "function") showToast("Could not mark notifications as read.", "error");
+      if (typeof showToast === "function") showToast(window.getSupabaseErrorMessage?.(err, "Could not mark notifications as read."), "error");
     }
   });
 

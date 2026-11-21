@@ -57,7 +57,10 @@ window.initPushNotificationSetup = async function ({
     }
   } catch (error) {
     console.error("Could not check push notification setup:", error);
-    status.textContent = "Could not check this device’s notification setup. Try again.";
+    status.textContent = window.getSupabaseErrorMessage?.(
+      error,
+      "Could not check this device’s notification setup. Try again.",
+    );
   }
   renderState();
 
@@ -117,8 +120,10 @@ window.initPushNotificationSetup = async function ({
       }
     } catch (error) {
       console.error("Could not update push notifications:", error);
-      status.textContent = error.message ||
-        "Could not update notifications on this device. Check your connection and try again.";
+      status.textContent = window.getSupabaseErrorMessage?.(
+        error,
+        "Could not update notifications on this device. Check your connection and try again.",
+      );
     } finally {
       button.disabled = false;
       renderState();

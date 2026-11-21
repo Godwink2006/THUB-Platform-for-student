@@ -227,6 +227,10 @@ async function loadStudentGradeData(options = {}) {
     renderSelectedStudentGrades();
   } catch (error) {
     console.error("Error initializing My Grades:", error);
+    showToast(
+      window.getSupabaseErrorMessage?.(error, "Could not load your grades. Refresh the page or try again."),
+      "error",
+    );
     if (reportContainer) {
       if (!cachedStudentGrades.length) {
         reportContainer.innerHTML = `
@@ -330,8 +334,11 @@ async function loadStudentStatusForTerm(studentId, academicYearId, termId) {
     badge.className = `status-badge ${String(status).toLowerCase()}`;
   } catch (error) {
     console.error("Error loading term status:", error);
-    badge.textContent = "Unavailable";
-    badge.className = "status-badge normal";
+    const message = window.getSupabaseErrorMessage?.(error, "Unavailable");
+    badge.textContent = "Error";
+    badge.title = message;
+    badge.className = "status-badge status-error";
+    showToast(message, "error");
   }
 }
 
@@ -431,6 +438,10 @@ async function renderSelectedStudentGrades() {
     }
   } catch (error) {
     console.error("Error loading student grades:", error);
+    showToast(
+      window.getSupabaseErrorMessage?.(error, "Could not load grades."),
+      "error",
+    );
     reportContainer.innerHTML = `
       <p class="grades-state grades-state-error">
         Failed to load grades: ${escapeHTML(error.message || "Unknown error")}

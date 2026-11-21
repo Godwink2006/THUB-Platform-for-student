@@ -108,7 +108,10 @@ async function loadStudentAttendanceData(options = {}) {
       calculateOverviewStats([]);
       renderSubjectCards([]);
     }
-    if (!allAttendanceRecords.length) showToast(error.message || "Could not load attendance records.", "error");
+    showToast(
+      window.getSupabaseErrorMessage?.(error, "Could not load attendance records."),
+      "error",
+    );
   } finally {
     attendanceLoading = false;
     if (refresh) setAttendanceRefreshState(false);

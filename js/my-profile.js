@@ -12,6 +12,9 @@ let myProfileDetailsReadOnly = false;
 let myProfileEditability = null;
 
 function getMyProfileErrorMessage(error, context = "profile", action = "update") {
+  const backendMessage = window.getSupabaseErrorMessage?.(error, "");
+  if (backendMessage) return backendMessage;
+
   const code = String(error?.code || "").toLowerCase();
   const status = Number(error?.status || error?.statusCode || 0);
   const diagnostic = `${error?.message || ""} ${error?.details || ""} ${error?.hint || ""}`.toLowerCase();

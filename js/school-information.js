@@ -60,6 +60,9 @@ function showSchoolInformationMessage(message, type = "info") {
 }
 
 function schoolInformationErrorMessage(error, action = "load") {
+  const backendMessage = window.getSupabaseErrorMessage?.(error, "");
+  if (backendMessage) return backendMessage;
+
   const code = String(error?.code || "").toLowerCase();
   const status = Number(error?.status || error?.statusCode || 0);
   const diagnostic = `${error?.message || ""} ${error?.details || ""}`.toLowerCase();
@@ -177,7 +180,7 @@ async function loadSchoolProfile(options = {}) {
     if (error) throw error;
 
     if (!data) {
-      showSchoolInformationMessage("School information could not be found.", "error");
+      showSchoolInformationMessage("No school information was returned for your account.", "error");
       return false;
     }
 

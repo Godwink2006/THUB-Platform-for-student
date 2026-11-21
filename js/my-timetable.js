@@ -191,7 +191,7 @@ async function initMyTimetable(options = {}) {
     console.error("Timetable Load Error:", err);
     window.studentPageCache?.clearLast(MY_TIMETABLE_CACHE_PAGE);
     timetableCacheRestored = false;
-    renderEmptyState("Failed to load timetable schedule.");
+    renderEmptyState(window.getSupabaseErrorMessage?.(err, "Failed to load timetable schedule."));
   } finally {
     timetableAccessLoading = false;
     document.body.classList.remove("timetable-access-checking");
@@ -256,7 +256,8 @@ async function loadStudentClassSchedule(classId, schoolId) {
     classQuery = classQuery.eq("school_id", schoolId);
   }
 
-  const { data: classData } = await classQuery.maybeSingle();
+  const { data: classData, error: classError } = await classQuery.maybeSingle();
+  if (classError) throw classError;
 
   if (classData) {
     const classNameEl = document.getElementById("classNameDisplay");
@@ -269,7 +270,7 @@ async function loadStudentClassSchedule(classId, schoolId) {
     });
 
   if (teachersError) {
-    console.warn("Timetable teacher names unavailable:", teachersError);
+    throw teachersError;
   }
 
   const teacherProfilesMap = new Map(
@@ -307,8 +308,7 @@ async function loadStudentClassSchedule(classId, schoolId) {
 
   if (ttErr) {
     console.error("Timetable Fetch Error:", ttErr);
-    renderEmptyState("Error loading timetable data.");
-    return false;
+    throw ttErr;
   }
 
   const activeTimetable =
@@ -325,8 +325,11 @@ async function loadStudentClassSchedule(classId, schoolId) {
     .select("id, day_of_week, is_break, subject_id, teacher_id, period_id")
     .eq("timetable_id", activeTimetable.id);
 
-  if (lessonsErr || !rawLessons || rawLessons.length === 0) {
+  if (lessonsErr) {
     console.error("Lessons Fetch Error:", lessonsErr);
+    throw lessonsErr;
+  }
+  if (!rawLessons || rawLessons.length === 0) {
     renderEmptyState("No timetable found.");
     return false;
   }
@@ -335,6 +338,8 @@ async function loadStudentClassSchedule(classId, schoolId) {
     supabaseClient.from("subjects").select("id, name"),
     supabaseClient.from("periods").select("id, name, start_time, end_time"),
   ]);
+  if (subjectsRes.error) throw subjectsRes.error;
+  if (periodsRes.error) throw periodsRes.error;
 
   const subjectsMap = new Map((subjectsRes.data || []).map((s) => [s.id, s]));
   const periodsMap = new Map((periodsRes.data || []).map((p) => [p.id, p]));

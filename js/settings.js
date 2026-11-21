@@ -138,6 +138,12 @@ async function loadSettingsSchoolHeader(options = {}) {
     window.studentPageCache?.write(SETTINGS_CACHE_PAGE, user.id, schoolData);
   } catch (error) {
     console.error("Could not load the school details for Settings:", error);
+    if (typeof showToast === "function") {
+      showToast(
+        window.getSupabaseErrorMessage?.(error, "Could not load the school details."),
+        "error",
+      );
+    }
     if (!document.getElementById("settingsSchoolPhoto")?.dataset.hydrated) {
       renderSettingsSchoolHeader();
     }
@@ -206,7 +212,7 @@ async function initPushNotificationSetup() {
   } catch (error) {
     console.error("Could not check push notification setup:", error);
     statusOverride = {
-      message: "Could not check this device’s notification setup. Try again.",
+      message: window.getSupabaseErrorMessage?.(error, "Could not check this device’s notification setup. Try again."),
       state: "error",
     };
   }
@@ -272,41 +278,8 @@ async function initPushNotificationSetup() {
             }, { onConflict: "endpoint" });
           };
 
-          let { error } = await saveSubscription(subscription);
-          if (isPushSubscriptionRlsError(error)) {
-            if (await isGraduatedOrTransferredStudent(user.id)) {
-              throw new Error(
-                "Push notifications can’t be enabled because your student enrollment is marked as graduated or transferred.",
-              );
-            }
-
-            const previousEndpoint = subscription.endpoint;
-            statusOverride = {
-              message: "Replacing an old push subscription for this device…",
-              state: "pending",
-            };
-            setStatus(statusOverride.message, statusOverride.state);
-
-            const unsubscribed = await subscription.unsubscribe();
-            if (!unsubscribed) {
-              throw new Error("This device’s old push subscription could not be replaced. Clear this site’s browser data, then try again.");
-            }
-
-            subscription = await registration.pushManager.subscribe({
-              userVisibleOnly: true,
-              applicationServerKey: base64UrlToUint8Array(window.T_HUB_VAPID_PUBLIC_KEY),
-            });
-            if (subscription.endpoint === previousEndpoint) {
-              throw new Error("This device kept its old push subscription. Clear this site’s browser data, then try again.");
-            }
-
-            ({ error } = await saveSubscription(subscription));
-            if (error) {
-              throw new Error("The old push subscription was replaced, but this device could not be registered. Please try again.");
-            }
-          } else if (error) {
-            throw error;
-          }
+          const { error } = await saveSubscription(subscription);
+          if (error) throw error;
 
           isEnabled = true;
           statusOverride = { message: "Push notifications are on for this device.", state: "success" };
@@ -317,7 +290,7 @@ async function initPushNotificationSetup() {
     } catch (error) {
       console.error("Could not set up push notifications:", error);
       statusOverride = {
-        message: error.message || "Could not update notifications on this device. Check your connection and try again.",
+        message: window.getSupabaseErrorMessage?.(error, "Could not update notifications on this device. Check your connection and try again."),
         state: "error",
       };
     } finally {
@@ -333,27 +306,6 @@ function base64UrlToUint8Array(value) {
   const base64 = (value + padding).replace(/-/g, "+").replace(/_/g, "/");
   const raw = atob(base64);
   return Uint8Array.from(raw, (character) => character.charCodeAt(0));
-}
-
-async function isGraduatedOrTransferredStudent(userId) {
-  const { data, error } = await supabaseClient
-    .from("student_enrollments")
-    .select("enrollment_status")
-    .eq("student_id", userId);
-  if (error) {
-    console.warn("Could not check push notification enrollment eligibility:", error.message);
-    return false;
-  }
-
-  return (data || []).some((enrollment) =>
-    ["graduated", "transferred", "transfered"].includes(
-      String(enrollment.enrollment_status || "").trim().toLowerCase(),
-    )
-  );
-}
-
-function isPushSubscriptionRlsError(error) {
-  return error?.code === "42501" && /row-level security/i.test(error.message || "");
 }
 
 let clearDataDialogTrigger = null;

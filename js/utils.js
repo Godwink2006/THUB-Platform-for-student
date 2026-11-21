@@ -253,6 +253,15 @@ function showToast(message, type = "success", duration = 5000) {
   return toast;
 }
 
+function getSupabaseErrorMessage(error, fallback = "The request could not be completed. Please try again.") {
+  const message = typeof error === "string" ? error : error?.message;
+  return typeof message === "string" && message.trim()
+    ? message.trim()
+    : fallback;
+}
+
+window.getSupabaseErrorMessage = getSupabaseErrorMessage;
+
 let _authContextPromise = null;
 
 window.getAuthContext = function (forceRefresh = false) {
