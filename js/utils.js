@@ -260,18 +260,32 @@ window.getAuthContext = function (forceRefresh = false) {
     return _authContextPromise;
   }
 
-  _authContextPromise = (async () => {
+  const contextPromise = (async () => {
     if (!window.supabaseClient) return null;
 
     try {
+      const {
+        data: { session },
+        error: sessionError,
+      } = await window.supabaseClient.auth.getSession();
+
+      if (sessionError) {
+        return { user: null, profile: null, authError: sessionError };
+      }
+      if (!session?.user) return { user: null, profile: null, authError: null };
+
       const {
         data: { user },
         error: userError,
       } = await window.supabaseClient.auth.getUser();
 
-      if (userError || !user) {
-        return null;
+      if (userError) {
+        // Keep the local session available during a temporary Auth API failure.
+        // This value is only used to avoid a false logout; protected queries
+        // still rely on Supabase Auth and row-level security.
+        return { user: session.user, profile: null, authError: userError };
       }
+      if (!user) return { user: null, profile: null, authError: null };
 
       const { data: profile, error: profileError } = await window.supabaseClient
         .from("profiles")
@@ -281,16 +295,27 @@ window.getAuthContext = function (forceRefresh = false) {
 
       if (profileError) {
         console.warn("Could not load user profile:", profileError);
+        return { user, profile: null, profileError };
       }
 
-      return { user, profile: profile || null };
+      return { user, profile: profile || null, profileError: null };
     } catch (err) {
       console.error("Error retrieving auth context:", err);
-      return null;
+      return { user: null, profile: null, authError: err };
     }
   })();
 
-  return _authContextPromise;
+  _authContextPromise = contextPromise;
+  void contextPromise.then((context) => {
+    if (
+      (context?.authError || context?.profileError) &&
+      _authContextPromise === contextPromise
+    ) {
+      _authContextPromise = null;
+    }
+  });
+
+  return contextPromise;
 };
 
 window.clearAuthContext = function () {
@@ -329,6 +354,7 @@ window.loadTransferredStudentIdentitySnapshots = async function (studentIds) {
 
 window.forceLogout = async function () {
   window.clearAuthContext?.();
+  window.studentPageCache?.clearAll();
   if (window.supabaseClient) {
     try {
       await window.supabaseClient.auth.signOut();
@@ -336,9 +362,6 @@ window.forceLogout = async function () {
       console.warn("SignOut error ignored:", e);
     }
   }
-
-  localStorage.clear();
-  sessionStorage.clear();
 
   if (!isLoginPage()) {
     window.location.replace("/index.html");
@@ -356,6 +379,11 @@ async function checkPageAccess() {
   const user = authCtx?.user;
   const profile = authCtx?.profile;
 
+  if (authCtx?.authError || authCtx?.profileError) {
+    console.warn("Keeping the current session while access checks are temporarily unavailable.");
+    return;
+  }
+
   if (!user) {
     await window.forceLogout();
     return;
@@ -371,8 +399,6 @@ async function checkPageAccess() {
   }
 
 }
-
-checkPageAccess();
 
 document.addEventListener("DOMContentLoaded", async () => {
   ensureStudentBottomNavigation();
@@ -525,12 +551,20 @@ window.addEventListener("pageshow", async (event) => {
 
     window.clearAuthContext?.();
     const authCtx = await window.getAuthContext(true);
+    if (authCtx?.authError || authCtx?.profileError) {
+      console.warn("Skipping the return-to-page access check because Supabase is temporarily unavailable.");
+      return;
+    }
+
     const user = authCtx?.user;
     const profile = authCtx?.profile;
 
     if (isLoginPage()) {
       if (user) {
-        if (String(profile?.role || "").trim().toLowerCase() === "student") {
+        if (
+          String(profile?.role || "").trim().toLowerCase() === "student" &&
+          String(profile?.status || "").trim().toLowerCase() === "active"
+        ) {
           window.location.replace("/html/dashboard.html");
         } else {
           await window.forceLogout();
@@ -546,18 +580,15 @@ window.addEventListener("pageshow", async (event) => {
 
     if (
       !isLoginPage() &&
-      String(profile?.role || "").trim().toLowerCase() === "student" &&
-      String(profile?.status || "").trim().toLowerCase() === "active"
-    ) {
-      void refreshStudentNotificationBadge(user?.id);
-    }
-
-    if (
-      String(profile?.role || "").trim().toLowerCase() !== "student" ||
-      String(profile?.status || "").trim().toLowerCase() !== "active"
+      (!profile ||
+        String(profile.role || "").trim().toLowerCase() !== "student" ||
+        String(profile.status || "").trim().toLowerCase() !== "active")
     ) {
       await window.forceLogout();
+      return;
     }
+
+    if (!isLoginPage()) void refreshStudentNotificationBadge(user?.id);
   }
 });
 
@@ -579,34 +610,17 @@ window.addEventListener("pageshow", async (event) => {
     return;
   }
 
-  const authCtx = await window.getAuthContext();
-  const user = authCtx?.user;
+  if (!isLogin) await checkPageAccess();
 
-  if (!isLogin && !user) {
-    console.warn("Session expired or invalid user. Redirecting to login...");
-    await window.supabaseClient.auth.signOut();
-    window.clearAuthContext?.();
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.replace("/index.html");
-    return;
-  }
-
-  if (
-    !isLogin &&
-    (String(authCtx?.profile?.role || "").trim().toLowerCase() !== "student" ||
-      String(authCtx?.profile?.status || "").trim().toLowerCase() !== "active")
-  ) {
-    await window.forceLogout();
-    return;
-  }
-
-  window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
-    if ((event === "SIGNED_OUT" || !session) && !isLogin) {
+  window.supabaseClient.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT" && !isLogin) {
       window.clearAuthContext?.();
-      localStorage.clear();
-      sessionStorage.clear();
       window.location.replace("/index.html");
+      return;
+    }
+
+    if (["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
+      window.clearAuthContext?.();
     }
   });
 })();
@@ -621,21 +635,23 @@ window.initAuthListener = async function (supabase) {
   const authCtx = await window.getAuthContext();
   const user = authCtx?.user;
 
-  if (!isLogin && !user) {
-    await supabase.auth.signOut();
-    window.clearAuthContext?.();
-    localStorage.clear();
-    sessionStorage.clear();
-    window.location.replace("/index.html");
-    return;
+  if (!isLogin && !authCtx?.authError && !authCtx?.profileError) {
+    if (!user || !authCtx.profile ||
+      String(authCtx.profile.role || "").trim().toLowerCase() !== "student" ||
+      String(authCtx.profile.status || "").trim().toLowerCase() !== "active") {
+      await window.forceLogout();
+      return;
+    }
   }
 
-  supabase.auth.onAuthStateChange(async (event, session) => {
-    if ((event === "SIGNED_OUT" || !session) && !isLogin) {
+  supabase.auth.onAuthStateChange((event) => {
+    if (event === "SIGNED_OUT" && !isLogin) {
       window.clearAuthContext?.();
-      localStorage.clear();
-      sessionStorage.clear();
       window.location.replace("/index.html");
+      return;
+    }
+    if (["SIGNED_IN", "TOKEN_REFRESHED", "USER_UPDATED"].includes(event)) {
+      window.clearAuthContext?.();
     }
   });
 };
@@ -659,32 +675,6 @@ function escapeAttribute(str) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
 }
-document.addEventListener("DOMContentLoaded", () => {
-  if (window.supabaseClient?.auth) {
-    window.supabaseClient.auth.onAuthStateChange(async (event, session) => {
-      const isLoginPage =
-        window.location.pathname.endsWith("index.html") ||
-        window.location.pathname === "/";
-      if (isLoginPage) return;
-
-      if (session?.user) {
-        const { data: profile, error } = await window.supabaseClient
-          .from("profiles")
-          .select("status")
-          .eq("id", session.user.id)
-          .maybeSingle();
-
-        if (error || !profile || profile.status !== "active") {
-          await window.supabaseClient.auth.signOut();
-          localStorage.clear();
-          sessionStorage.clear();
-          window.location.replace("/index.html?error=account_disabled");
-        }
-      }
-    });
-  }
-});
-
 async function logActivity(
   schoolId,
   description,
