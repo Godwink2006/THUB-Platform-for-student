@@ -382,7 +382,7 @@ body.app-dark .attendance-filter-button:hover:not(:disabled) {
 
   .stat-card {
     padding: 12px;
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   .stat-value {
@@ -394,18 +394,18 @@ body.app-dark .attendance-filter-button:hover:not(:disabled) {
   }
 
   .subject-card {
-    border-radius: 10px;
+    border-radius: 20px;
   }
   .toolbar {
     flex-direction: column;
     gap: 10px;
-    border-radius: 10px;
+    border-radius: 20px;
     margin-top: 10px;
   }
 
   .toolbar input,
   .toolbar select {
-    border-radius: 10px;
+    border-radius: 20px;
     padding: 10px;
   }
 
@@ -414,7 +414,7 @@ body.app-dark .attendance-filter-button:hover:not(:disabled) {
   .progress-bar-bg,
   .subject-badge,
   .status-tag {
-    border-radius: 10px;
+    border-radius: 20px;
   }
 
   table {
