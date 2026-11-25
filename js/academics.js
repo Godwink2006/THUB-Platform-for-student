@@ -60,7 +60,7 @@ async function loadAcademicsProfile(options = {}) {
         email: user.email || currentUserCache.data.email || "",
       };
       renderAcademicsProfile(data);
-      window.studentPageCache?.write(ACADEMICS_CACHE_PAGE, user.id, data);
+      await window.studentPageCache?.write(ACADEMICS_CACHE_PAGE, user.id, data);
       return;
     }
 
@@ -88,7 +88,7 @@ async function loadAcademicsProfile(options = {}) {
       schoolPhotoUrl,
     };
     renderAcademicsProfile(data);
-    window.studentPageCache?.write(ACADEMICS_CACHE_PAGE, user.id, data);
+    await window.studentPageCache?.write(ACADEMICS_CACHE_PAGE, user.id, data);
   } catch (error) {
     console.error("Could not load the student profile on academics:", error);
     if (typeof showToast === "function") {

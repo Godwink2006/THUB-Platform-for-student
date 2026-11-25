@@ -25,8 +25,8 @@ document.addEventListener("DOMContentLoaded", async () => {
   }
   const userId = session.user.id;
 
-  function saveNotificationsCache() {
-    window.studentPageCache?.write(NOTIFICATIONS_CACHE_PAGE, userId, {
+  async function saveNotificationsCache() {
+    await window.studentPageCache?.write(NOTIFICATIONS_CACHE_PAGE, userId, {
       items: notificationsData,
       nextOffset,
       hasMore: hasMoreNotifications,
@@ -62,7 +62,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       notificationsData = firstPage.slice(0, NOTIFICATIONS_PAGE_SIZE);
       nextOffset = notificationsData.length;
       hasMoreNotifications = firstPage.length > NOTIFICATIONS_PAGE_SIZE;
-      saveNotificationsCache();
+      await saveNotificationsCache();
       renderNotifications();
     } catch (err) {
       console.error("Error fetching notifications:", err);
@@ -101,7 +101,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       );
       nextOffset += pageItems.length;
       hasMoreNotifications = page.length > NOTIFICATIONS_PAGE_SIZE;
-      saveNotificationsCache();
+      await saveNotificationsCache();
       renderNotifications();
     } catch (err) {
       console.error("Error loading the next notifications:", err);
@@ -186,7 +186,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
       notificationsData = notificationsData.filter((item) => item.id !== id);
       nextOffset = Math.max(0, nextOffset - 1);
-      saveNotificationsCache();
+      await saveNotificationsCache();
       renderNotifications();
       void window.refreshStudentNotificationBadge?.();
       if (typeof showToast === "function") showToast("Notification deleted.", "success");
@@ -212,7 +212,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       notificationsData = notificationsData.map((item) =>
         item.id === id ? { ...item, is_read: true } : item,
       );
-      saveNotificationsCache();
+      await saveNotificationsCache();
       renderNotifications();
       void window.refreshStudentNotificationBadge?.();
     } catch (err) {
@@ -238,7 +238,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       if (error) throw error;
 
       notificationsData = notificationsData.map((item) => ({ ...item, is_read: true }));
-      saveNotificationsCache();
+      await saveNotificationsCache();
       renderNotifications();
       void window.refreshStudentNotificationBadge?.();
     } catch (err) {

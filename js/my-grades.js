@@ -219,7 +219,7 @@ async function loadStudentGradeData(options = {}) {
       }
     }
 
-    window.studentPageCache?.write(MY_GRADES_CACHE_PAGE, user.id, {
+    await window.studentPageCache?.write(MY_GRADES_CACHE_PAGE, user.id, {
       grades: cachedStudentGrades,
       terms: studentTerms,
       creators: [...cachedStudentGradeCreators.entries()],

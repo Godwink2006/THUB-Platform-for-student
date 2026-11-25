@@ -182,7 +182,7 @@ async function initMyTimetable(options = {}) {
 
       setupTimetableFilters();
       applyTimetableFilters();
-      saveTimetableCache(user.id, studentSchoolId, studentData.class_id);
+      await saveTimetableCache(user.id, studentSchoolId, studentData.class_id);
     } else {
       window.studentPageCache?.clearLast(MY_TIMETABLE_CACHE_PAGE);
       timetableCacheRestored = false;
@@ -202,7 +202,7 @@ async function initMyTimetable(options = {}) {
   }
 }
 
-function saveTimetableCache(studentId, schoolId, classId) {
+async function saveTimetableCache(studentId, schoolId, classId) {
   if (!studentId || !schoolId || !classId || !allCurrentLessons.length) return;
   const className = document.getElementById("classNameDisplay")?.textContent || "--";
   const classTeacher = document.getElementById("classTeacherDisplay")?.textContent || "Not Assigned";
@@ -216,7 +216,7 @@ function saveTimetableCache(studentId, schoolId, classId) {
     breaks,
     lessons: allCurrentLessons,
   };
-  window.studentPageCache?.write(MY_TIMETABLE_CACHE_PAGE, studentId, cachedTimetableData);
+  await window.studentPageCache?.write(MY_TIMETABLE_CACHE_PAGE, studentId, cachedTimetableData);
   timetableCacheRestored = true;
 }
 

@@ -89,7 +89,7 @@ async function loadMyTransferHistory(options = {}) {
     myHistoryRows = flattenHistoryRows(myTransferHistory);
     bindHistoryFilters();
     buildHistoryFilters();
-    window.studentPageCache?.write(MY_HISTORY_CACHE_PAGE, userId, {
+    await window.studentPageCache?.write(MY_HISTORY_CACHE_PAGE, userId, {
       transfers: myTransferHistory,
     });
     renderHistoryTables();

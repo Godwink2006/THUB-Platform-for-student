@@ -106,8 +106,10 @@ function renderSettingsSchoolHeader(school = {}) {
     motto.hidden = !school.schoolMotto;
   }
   if (photo) {
-    photo.src = school.logoUrl || DEFAULT_SETTINGS_SCHOOL_PHOTO;
+    const logoUrl = school.logoUrl || DEFAULT_SETTINGS_SCHOOL_PHOTO;
+    if (photo.getAttribute("src") !== logoUrl) photo.src = logoUrl;
     photo.alt = `${school.schoolName || "School"} photo`;
+    photo.style.visibility = "visible";
     photo.dataset.hydrated = "true";
   }
 }
@@ -165,7 +167,7 @@ async function loadSettingsSchoolHeader(options = {}) {
       logoUrl: school?.logo_url || "",
     };
     renderSettingsSchoolHeader(schoolData);
-    window.studentPageCache?.write(SETTINGS_CACHE_PAGE, user.id, schoolData);
+    await window.studentPageCache?.write(SETTINGS_CACHE_PAGE, user.id, schoolData);
   } catch (error) {
     console.error("Could not load the school details for Settings:", error);
     if (typeof showToast === "function") {

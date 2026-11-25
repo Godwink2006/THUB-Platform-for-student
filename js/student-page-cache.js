@@ -108,10 +108,20 @@
   function persist(key, value) {
     if (database) {
       try {
-        const transaction = database.transaction(STORE_NAME, "readwrite");
-        transaction.objectStore(STORE_NAME).put({ key, value });
-        transaction.onerror = () => console.warn("Could not persist app cache entry:", transaction.error);
-        return;
+        return new Promise((resolve) => {
+          const transaction = database.transaction(STORE_NAME, "readwrite");
+          transaction.objectStore(STORE_NAME).put({ key, value });
+          transaction.oncomplete = resolve;
+          transaction.onerror = () => {
+            console.warn("Could not persist app cache entry:", transaction.error);
+            try { window.localStorage.setItem(key, value); } catch { /* Memory remains available for this page. */ }
+            resolve();
+          };
+          transaction.onabort = () => {
+            try { window.localStorage.setItem(key, value); } catch { /* Memory remains available for this page. */ }
+            resolve();
+          };
+        });
       } catch (error) {
         console.warn("Could not persist app cache entry:", error);
       }
@@ -119,6 +129,7 @@
     try { window.localStorage.setItem(key, value); } catch (error) {
       console.warn("Could not save app cache entry to browser storage:", error);
     }
+    return Promise.resolve();
   }
 
   function removePersisted(key) {
@@ -161,10 +172,12 @@
     }
   }
 
-  function write(page, userId, data) {
+  async function write(page, userId, data) {
     if (!userId) return;
-    setItem(pageDataKey(page, userId), JSON.stringify({ userId, savedAt: Date.now(), data }));
-    setItem(lastUserKey(page), userId);
+    await Promise.all([
+      setItem(pageDataKey(page, userId), JSON.stringify({ userId, savedAt: Date.now(), data })),
+      setItem(lastUserKey(page), userId),
+    ]);
   }
 
   function clearLast(page) {
@@ -178,7 +191,7 @@
   function setItem(key, value) {
     const stringValue = String(value);
     memory.set(key, stringValue);
-    if (isAppCacheKey(key)) persist(key, stringValue);
+    return isAppCacheKey(key) ? persist(key, stringValue) : Promise.resolve();
   }
 
   function removeItem(key) {

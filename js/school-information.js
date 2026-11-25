@@ -186,7 +186,7 @@ async function loadSchoolProfile(options = {}) {
 
     const schoolData = { ...data, schoolId };
     renderSchoolInformation(schoolData);
-    window.studentPageCache?.write(SCHOOL_INFORMATION_CACHE_PAGE, user.id, schoolData);
+    await window.studentPageCache?.write(SCHOOL_INFORMATION_CACHE_PAGE, user.id, schoolData);
     const notice = document.getElementById("schoolInformationNotice");
     if (notice) notice.hidden = true;
     return true;

@@ -117,7 +117,7 @@ async function loadStudentDashboard(options = {}) {
       attendance: cached?.data?.attendance || null,
       announcements: cached?.data?.announcements || null,
     };
-    renderDashboardProfile(dashboardData.profile);
+    renderDashboardData(dashboardData);
 
     const results = await Promise.allSettled([
       loadStudentAnnouncements(client, profile.school_id),
@@ -151,7 +151,7 @@ async function loadStudentDashboard(options = {}) {
       }
     }
     renderDashboardData(dashboardData);
-    window.studentPageCache?.write(DASHBOARD_CACHE_PAGE, user.id, dashboardData);
+    await window.studentPageCache?.write(DASHBOARD_CACHE_PAGE, user.id, dashboardData);
   } catch (error) {
     console.error("Could not load the student dashboard:", error);
     if (preview) {

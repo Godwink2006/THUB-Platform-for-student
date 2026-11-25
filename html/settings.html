@@ -44,6 +44,7 @@
             id="settingsSchoolPhoto"
             src="/icons/school-avatar-default.svg"
             alt="School photo"
+            style="visibility:hidden"
             onerror="this.onerror=null;this.src='/icons/school-avatar-default.svg'"
           />
           <h1 id="settingsSchoolName">My School</h1>
@@ -55,39 +56,58 @@
         </header>
 
         <script>
-          (() => {
+          (async () => {
+            const photo = document.getElementById("settingsSchoolPhoto");
+            const showFallback = () => { if (photo) photo.style.visibility = "visible"; };
             try {
               const pageKey = "thubStudentPageCache:v1:settings-school";
-              const cachedUserId =
-                localStorage.getItem(`${pageKey}:last-user`) ||
-                sessionStorage.getItem(`${pageKey}:last-user`);
-              if (!cachedUserId) return;
-              const hasMatchingSession = Object.keys(localStorage).some((key) => {
+              const sessions = Object.keys(localStorage).filter((key) => {
                 if (!key.startsWith("sb-") || !key.endsWith("-auth-token")) return false;
-                try {
-                  const session = JSON.parse(localStorage.getItem(key) || "null");
-                  return session?.user?.id === cachedUserId;
-                } catch {
-                  return false;
-                }
+                return true;
               });
-              if (!hasMatchingSession) return;
+              const currentUserId = sessions.map((key) => {
+                try { return JSON.parse(localStorage.getItem(key) || "null")?.user?.id || ""; }
+                catch { return ""; }
+              }).find(Boolean);
+              if (!currentUserId) { showFallback(); return; }
+
+              const db = await new Promise((resolve, reject) => {
+                const request = indexedDB.open("thub-student-app-cache", 1);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+                request.onupgradeneeded = () => request.transaction.abort();
+              });
+              const lastUserRecord = await new Promise((resolve, reject) => {
+                const request = db.transaction("entries", "readonly").objectStore("entries").get(`${pageKey}:last-user`);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+              });
+              const cachedUserId = lastUserRecord?.value;
+              if (cachedUserId !== currentUserId) { db.close(); showFallback(); return; }
               const cacheKey = `${pageKey}:${cachedUserId}`;
-              const cachedValue =
-                localStorage.getItem(cacheKey) || sessionStorage.getItem(cacheKey);
-              const cached = JSON.parse(cachedValue || "null");
+              const cachedRecord = await new Promise((resolve, reject) => {
+                const request = db.transaction("entries", "readonly").objectStore("entries").get(cacheKey);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+              });
+              db.close();
+              const cached = JSON.parse(cachedRecord?.value || "null");
               const school = cached?.userId === cachedUserId ? cached.data : null;
-              if (!school) return;
+              if (!school) { showFallback(); return; }
               document.getElementById("settingsSchoolName").textContent = school.schoolName || "My School";
               const motto = document.getElementById("settingsSchoolMotto");
               motto.textContent = school.schoolMotto || "";
               motto.hidden = !school.schoolMotto;
-              const photo = document.getElementById("settingsSchoolPhoto");
+              photo.onload = showFallback;
+              photo.onerror = () => {
+                photo.src = "/icons/school-avatar-default.svg";
+                showFallback();
+              };
               photo.src = school.logoUrl || "/icons/school-avatar-default.svg";
               photo.alt = `${school.schoolName || "School"} photo`;
               photo.dataset.hydrated = "true";
             } catch {
-              // The page continues with its default school image if cache data is unavailable.
+              showFallback();
             }
           })();
         </script>

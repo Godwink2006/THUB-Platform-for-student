@@ -138,9 +138,9 @@ function setProfileEditability(canEdit) {
   if (canEdit) checkProfileChanges();
 }
 
-function saveMyProfileCache(userId) {
+async function saveMyProfileCache(userId) {
   if (!userId || !currentProfileData) return;
-  window.studentPageCache?.write(MY_PROFILE_CACHE_PAGE, userId, {
+  await window.studentPageCache?.write(MY_PROFILE_CACHE_PAGE, userId, {
     ...currentProfileData,
     canEditDetails: myProfileEditability,
   });
@@ -230,7 +230,7 @@ async function loadMyProfile(options = {}) {
     };
 
     populateProfileForm(currentProfileData);
-    saveMyProfileCache(user.id);
+    await saveMyProfileCache(user.id);
 
     checkProfileChanges();
     return true;
@@ -650,7 +650,7 @@ document.addEventListener("DOMContentLoaded", async function () {
 
     if (String(profile?.role || "").trim().toLowerCase() !== "student") {
       setProfileEditability(true);
-      saveMyProfileCache(user.id);
+      await saveMyProfileCache(user.id);
       return;
     }
 
@@ -684,10 +684,10 @@ document.addEventListener("DOMContentLoaded", async function () {
         notice.hidden = false;
       }
 
-      saveMyProfileCache(user.id);
+      await saveMyProfileCache(user.id);
     } else {
       setProfileEditability(true);
-      saveMyProfileCache(user.id);
+      await saveMyProfileCache(user.id);
     }
   } catch (error) {
     showMyProfileError(error, "enrollment information", "load");

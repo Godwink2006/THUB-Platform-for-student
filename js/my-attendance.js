@@ -94,7 +94,7 @@ async function loadStudentAttendanceData(options = {}) {
     if (refresh) window.studentTransferHistoryIndex = null;
     const historyIndex = await window.getStudentTransferHistoryIndex(client);
     await fetchStudentAttendanceRecords(user.id, historyIndex, client);
-    window.studentPageCache?.write(MY_ATTENDANCE_CACHE_PAGE, user.id, {
+    await window.studentPageCache?.write(MY_ATTENDANCE_CACHE_PAGE, user.id, {
       records: allAttendanceRecords,
     });
     populateDropdownFilters(allAttendanceRecords);

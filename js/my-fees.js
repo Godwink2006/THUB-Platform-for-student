@@ -2,6 +2,7 @@ let cachedStudentFees = [];
 let cachedStudentTransactions = [];
 const MY_FEES_CACHE_PAGE = "my-fees";
 let feeAccessLoading = false;
+let feesRestoredFromCache = false;
 
 function getSemesterNumber(termName) {
   const name = String(termName || "");
@@ -44,6 +45,7 @@ function restoreCachedStudentFees() {
 
   cachedStudentFees = cached.data.fees;
   cachedStudentTransactions = cached.data.transactions;
+  feesRestoredFromCache = true;
   setupFeeFilters();
   renderSelectedStudentFees();
   return true;
@@ -130,19 +132,22 @@ async function loadStudentFees(options = {}) {
     }
 
     setupFeeFilters();
-    window.studentPageCache?.write(MY_FEES_CACHE_PAGE, user.id, {
+    await window.studentPageCache?.write(MY_FEES_CACHE_PAGE, user.id, {
       fees: cachedStudentFees,
       transactions: cachedStudentTransactions,
     });
+    feesRestoredFromCache = true;
     renderSelectedStudentFees();
   } catch (error) {
     console.error("Could not load student fees:", error);
-    window.studentPageCache?.clearLast(MY_FEES_CACHE_PAGE);
+    if (!feesRestoredFromCache) window.studentPageCache?.clearLast(MY_FEES_CACHE_PAGE);
     const feesContainer = document.getElementById("studentFeesContainer");
     const txContainer = document.getElementById("paymentTransactionsContainer");
     const message = escapeHTML(window.getSupabaseErrorMessage?.(error, "Fees could not be loaded. Refresh the page or contact your school administrator."));
-    if (feesContainer) feesContainer.innerHTML = `<div class="empty-state">${message}</div>`;
-    if (txContainer) txContainer.innerHTML = `<div class="empty-state">${message}</div>`;
+    if (!feesRestoredFromCache) {
+      if (feesContainer) feesContainer.innerHTML = `<div class="empty-state">${message}</div>`;
+      if (txContainer) txContainer.innerHTML = `<div class="empty-state">${message}</div>`;
+    }
   } finally {
     feeAccessLoading = false;
     if (refresh) setFeeRefreshState(false);
