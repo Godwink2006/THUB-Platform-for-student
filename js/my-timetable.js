@@ -68,7 +68,8 @@ function showTimetableLoading() {
   if (loading) loading.hidden = false;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   restoreCachedTimetable();
   document.getElementById("refreshMyTimetable")?.addEventListener("click", () => {
     void initMyTimetable({ forceRefresh: true });

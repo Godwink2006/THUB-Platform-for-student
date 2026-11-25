@@ -363,7 +363,7 @@ window.loadTransferredStudentIdentitySnapshots = async function (studentIds) {
 
 window.forceLogout = async function () {
   window.clearAuthContext?.();
-  window.studentPageCache?.clearAll();
+  await window.studentPageCache?.clearAll();
   if (window.supabaseClient) {
     try {
       await window.supabaseClient.auth.signOut();

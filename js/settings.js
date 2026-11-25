@@ -31,6 +31,7 @@ function getPushNotificationErrorMessage(error, fallback) {
 }
 
 async function initSettingsPage() {
+  await window.studentPageCache?.ready;
   const containerEl = document.getElementById("settingsContainer");
   document
     .getElementById("refreshSettingsSchool")
@@ -438,6 +439,8 @@ async function clearCurrentBrowserData() {
   confirmButton.textContent = "Logging out…";
   if (cancelButton) cancelButton.disabled = true;
 
+  await window.studentPageCache?.clearAll();
+
   try {
     if (window.supabaseClient?.auth) {
       const { error } = await window.supabaseClient.auth.signOut({
@@ -473,27 +476,6 @@ async function clearCurrentBrowserData() {
     await Promise.all((registrations || []).map((registration) => registration.unregister()));
   } catch (error) {
     console.warn("Could not unregister this site's service workers:", error);
-  }
-
-  try {
-    if (typeof window.indexedDB?.databases === "function") {
-      const databases = await window.indexedDB.databases();
-      await Promise.all(
-        databases
-          .filter((database) => database.name)
-          .map(
-            (database) =>
-              new Promise((resolve) => {
-                const request = window.indexedDB.deleteDatabase(database.name);
-                request.onsuccess = resolve;
-                request.onerror = resolve;
-                request.onblocked = resolve;
-              }),
-          ),
-      );
-    }
-  } catch (error) {
-    console.warn("Could not clear this site's IndexedDB data:", error);
   }
 
   try {

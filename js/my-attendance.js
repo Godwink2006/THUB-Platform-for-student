@@ -17,7 +17,8 @@ function getSemesterNumber(termName) {
   return null;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   const hasCachedAttendance = restoreCachedAttendance();
   if (!hasCachedAttendance) {
     const tableBody = document.getElementById("attendanceHistoryTable");

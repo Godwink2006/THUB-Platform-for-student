@@ -21,6 +21,7 @@ function getSemesterNumber(termName) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   restoreCachedStudentGrades();
   document.getElementById("refreshStudentGrades")?.addEventListener("click", () => {
     void loadStudentGradeData({ refresh: true });

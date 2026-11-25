@@ -207,6 +207,7 @@ function setText(id, val) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   const loader = document.getElementById("formLoader");
   const view = document.getElementById("schoolInformationView");
   const refreshButton = document.getElementById("refreshSchoolInformation");

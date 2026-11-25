@@ -32,6 +32,7 @@ function renderAcademicsProfile(data) {
 }
 
 async function loadAcademicsProfile(options = {}) {
+  await window.studentPageCache?.ready;
   const refresh = options.refresh === true;
   const refreshButton = document.getElementById("refreshAcademics");
   if (refresh && refreshButton) {
@@ -105,6 +106,7 @@ async function loadAcademicsProfile(options = {}) {
 }
 
 async function initAcademicsPage() {
+  await window.studentPageCache?.ready;
   const containerEl = document.getElementById("academicsContainer");
   if (!containerEl) return;
   renderAcademicsLinks(containerEl);

@@ -2,6 +2,7 @@ const NOTIFICATIONS_CACHE_PAGE = "notifications";
 const NOTIFICATIONS_PAGE_SIZE = 20;
 
 document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   const notificationList = document.getElementById("fullNotificationList");
   const markAllReadBtn = document.getElementById("markAllReadBtn");
   const refreshBtn = document.getElementById("refreshNotifications");

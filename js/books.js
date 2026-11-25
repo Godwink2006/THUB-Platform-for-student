@@ -16,7 +16,7 @@ let booksCacheRestored = false;
 function readBooksCache() {
   if (!booksCacheKey) return null;
   try {
-    const cached = JSON.parse(localStorage.getItem(booksCacheKey) || "null");
+    const cached = JSON.parse(window.studentPageCache?.getItem(booksCacheKey) || "null");
     if (
       !cached ||
       !Array.isArray(cached.books)
@@ -31,7 +31,7 @@ function readBooksCache() {
 function saveBooksCache() {
   if (!booksCacheKey) return;
   try {
-    localStorage.setItem(booksCacheKey, JSON.stringify({
+    window.studentPageCache?.setItem(booksCacheKey, JSON.stringify({
       savedAt: Date.now(),
       studentId: booksStudentId,
       schoolId: booksSchoolId,
@@ -46,7 +46,7 @@ function saveBooksCache() {
 function saveBooksAccess() {
   if (!booksStudentId) return;
   try {
-    localStorage.setItem(BOOKS_LAST_ACCESS_KEY, JSON.stringify({
+    window.studentPageCache?.setItem(BOOKS_LAST_ACCESS_KEY, JSON.stringify({
       studentId: booksStudentId,
       schoolId: booksSchoolId,
       cacheKey: booksCacheKey,
@@ -58,7 +58,7 @@ function saveBooksAccess() {
 
 function restoreCachedBooksPage() {
   try {
-    const savedAccess = JSON.parse(localStorage.getItem(BOOKS_LAST_ACCESS_KEY) || "null");
+    const savedAccess = JSON.parse(window.studentPageCache?.getItem(BOOKS_LAST_ACCESS_KEY) || "null");
     if (!savedAccess?.studentId) return false;
 
     booksStudentId = savedAccess.studentId;
@@ -462,7 +462,8 @@ if (catalogSearchInput) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   document
     .getElementById("nextBooksPage")
     ?.addEventListener("click", () => loadBookCatalog({ append: true }));

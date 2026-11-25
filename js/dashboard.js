@@ -39,9 +39,7 @@ function setDashboardRefreshState(isRefreshing) {
 }
 
 async function initializeStudentDashboard() {
-  const cached = window.studentPageCache?.readLast(DASHBOARD_CACHE_PAGE);
-  if (cached?.data) renderDashboardData(cached.data);
-
+  await window.studentPageCache?.ready;
   document
     .getElementById("refreshDashboard")
     ?.addEventListener("click", () => loadStudentDashboard({ refresh: true }));
@@ -49,6 +47,7 @@ async function initializeStudentDashboard() {
 }
 
 async function loadStudentDashboard(options = {}) {
+  await window.studentPageCache?.ready;
   if (dashboardLoading) return;
   dashboardLoading = true;
   const refresh = options.refresh === true;

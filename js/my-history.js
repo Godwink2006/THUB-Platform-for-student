@@ -3,7 +3,8 @@ let myHistoryRows = [];
 const MY_HISTORY_CACHE_PAGE = "my-history";
 let historyAccessLoading = false;
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   restoreCachedTransferHistory();
   document.getElementById("refreshTransferHistory")?.addEventListener("click", () => {
     void loadMyTransferHistory({ refresh: true });

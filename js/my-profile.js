@@ -174,6 +174,7 @@ function setMyProfileRefreshState(isRefreshing) {
 }
 
 async function loadMyProfile(options = {}) {
+  await window.studentPageCache?.ready;
   const refresh = options.refresh === true;
   const showProgress = options.showProgress !== false;
   if (refresh && showProgress) setMyProfileRefreshState(true);
@@ -480,7 +481,8 @@ function validateProfileInputs(fullName, email, phone) {
   return null;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   setProfileEditAccessPending();
   populateCachedMyProfile();
 
@@ -625,6 +627,7 @@ function validatePasswordRequirements(password) {
 }
 
 document.addEventListener("DOMContentLoaded", async function () {
+  await window.studentPageCache?.ready;
   const saveBtn = document.getElementById("saveProfileInfo");
   if (!saveBtn) return;
 

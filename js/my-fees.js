@@ -59,7 +59,8 @@ function setFeeRefreshState(isRefreshing) {
     : '<i class="fa-solid fa-rotate" aria-hidden="true"></i><span>Refresh</span>';
 }
 
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", async () => {
+  await window.studentPageCache?.ready;
   restoreCachedStudentFees();
   document.getElementById("refreshStudentFees")?.addEventListener("click", () => {
     void loadStudentFees({ refresh: true });
