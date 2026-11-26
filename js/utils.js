@@ -535,19 +535,21 @@ async function refreshStudentNotificationBadge(userId = null) {
   }
   if (!userId) return;
 
-  const { count, error } = await client
+  const { data, error } = await client
     .from("notifications")
-    .select("id", { count: "exact", head: true })
+    .select("id")
     .eq("user_id", userId)
-    .eq("is_read", false);
+    .eq("is_read", false)
+    .limit(100);
 
   if (error) {
     console.warn("Could not load unread notification count:", error);
     return;
   }
 
-  badge.textContent = count > 99 ? "99+" : String(count || 0);
-  badge.hidden = !count;
+  const count = data?.length || 0;
+  badge.textContent = count >= 100 ? "99+" : String(count);
+  badge.hidden = count === 0;
 }
 
 window.refreshStudentNotificationBadge = refreshStudentNotificationBadge;

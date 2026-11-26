@@ -7,6 +7,22 @@ const supabaseReadCache = new Map();
 const supabaseReadInflight = new Map();
 const defaultSupabaseFetch = window.fetch.bind(window);
 let supabaseCacheGeneration = 0;
+const SUPABASE_REQUEST_TIMEOUT = 15_000;
+
+async function fetchSupabaseWithTimeout(request) {
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), SUPABASE_REQUEST_TIMEOUT);
+    try {
+        return await defaultSupabaseFetch(new Request(request, { signal: controller.signal }));
+    } catch (error) {
+        if (error?.name === "AbortError") {
+            throw new Error("The school server did not respond in time. Check your connection and try again.");
+        }
+        throw error;
+    } finally {
+        window.clearTimeout(timeout);
+    }
+}
 
 function supabaseReadCacheKey(request) {
     const varyHeaders = [
@@ -42,7 +58,7 @@ async function cachedSupabaseFetch(input, init) {
         request.method === "GET";
 
     if (!isSupabaseTableRead) {
-        const response = await defaultSupabaseFetch(request);
+        const response = await fetchSupabaseWithTimeout(request);
         if (
             url.origin === new URL(SUPABASE_URL).origin &&
             url.pathname.startsWith("/rest/v1/") &&
@@ -66,7 +82,7 @@ async function cachedSupabaseFetch(input, init) {
     let pending = supabaseReadInflight.get(key);
     if (!pending) {
         const generation = supabaseCacheGeneration;
-        pending = defaultSupabaseFetch(request)
+        pending = fetchSupabaseWithTimeout(request)
             .then((response) => {
                 if (response.ok && generation === supabaseCacheGeneration) {
                     supabaseReadCache.set(key, {

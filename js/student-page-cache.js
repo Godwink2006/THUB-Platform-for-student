@@ -103,25 +103,46 @@
     }
   }
 
-  const ready = initialize();
+  // Cache startup must never keep a page behind its loading screen. IndexedDB
+  // can remain pending when another tab holds an upgrade transaction open.
+  const ready = new Promise((resolve) => {
+    const timeout = window.setTimeout(() => {
+      if (!database) {
+        console.warn("IndexedDB startup is taking too long; loading the page without waiting for cache.");
+        for (const storage of storageAreas()) {
+          try {
+            for (let index = 0; index < storage.length; index += 1) {
+              const key = storage.key(index);
+              if (!isAppCacheKey(key)) continue;
+              const value = storage.getItem(key);
+              if (value !== null) memory.set(key, value);
+            }
+          } catch { /* The page can still fetch fresh data without cache. */ }
+        }
+      }
+      resolve();
+    }, 1800);
+    initialize().then(() => {
+      window.clearTimeout(timeout);
+      resolve();
+    });
+  });
 
   function persist(key, value) {
     if (database) {
       try {
-        return new Promise((resolve) => {
-          const transaction = database.transaction(STORE_NAME, "readwrite");
-          transaction.objectStore(STORE_NAME).put({ key, value });
-          transaction.oncomplete = resolve;
-          transaction.onerror = () => {
-            console.warn("Could not persist app cache entry:", transaction.error);
-            try { window.localStorage.setItem(key, value); } catch { /* Memory remains available for this page. */ }
-            resolve();
-          };
-          transaction.onabort = () => {
-            try { window.localStorage.setItem(key, value); } catch { /* Memory remains available for this page. */ }
-            resolve();
-          };
-        });
+        const transaction = database.transaction(STORE_NAME, "readwrite");
+        transaction.objectStore(STORE_NAME).put({ key, value });
+        transaction.onerror = () => {
+          console.warn("Could not persist app cache entry:", transaction.error);
+          try { window.localStorage.setItem(key, value); } catch { /* Memory remains available for this page. */ }
+        };
+        transaction.onabort = () => {
+          try { window.localStorage.setItem(key, value); } catch { /* Memory remains available for this page. */ }
+        };
+        // The in-memory copy is already updated. Do not make page rendering
+        // wait for IndexedDB's transaction completion.
+        return Promise.resolve();
       } catch (error) {
         console.warn("Could not persist app cache entry:", error);
       }
